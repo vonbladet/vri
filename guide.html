@@ -1,0 +1,315 @@
+<HTML>
+<HEAD>
+<TITLE>VRI: Guide to VRI concepts</TITLE>
+</HEAD>
+<BODY>
+
+<CENTER>
+<H1><A HREF="../vri.html">V.R.I.  -  Virtual Radio Interferometer</A></H1>
+<EM>D. J. McKay  & N. P. F. McKay</EM><P>
+</CENTER>
+
+
+VRI (the Virtual Radio Interferometer) is a Java applet that simulates
+the operation of a particular technique in radio interferometry called
+<EM>earth rotation aperture synthesis</EM>. To the unititiated, this
+can be a quite complicated process, so this document attemtps to
+explain some of the fundamental concepts and why the VRI applet is
+useful to visualise radio interferometry.
+
+<H2>Radio telescopes</H2>
+
+When people think of astronomy, they often think of the big optical
+telescopes, mounted in domes high up on mountain peaks. These
+observatories are built to study the visible light that comes from the
+stars, galaxies and other bodies that make up the universe. Yet
+visible light is just a small part of the <EM>electromagnetic
+spectrum</EM>, which also includes other types of radiation, such as
+X-rays, ultra-violet (UV) rays, infra-red and radio waves.
+<P>
+In addition to the optical observatories, other installations have
+been contructed to examine these other radiations. We shall be
+concentrating on the radio waves here.
+<P>
+Although there are many different types of radiotelescopes, one of the
+more common designs is that of the "big dish" - such as that at <A
+HREF="http://wwwpks.atnf.csiro.au/PKSHomePage.html">Parkes</A> (NSW
+Austrlia) or <A HREF="http://www.jb.man.ac.uk">Jodrell Bank</A>
+(Cheshire, UK). The idea is that radio waves come in from space, are
+bounced off the surface of the dish and are focused onto a piece of
+electronic equipment - the <EM>receiver</EM>.  This converts the radio
+wave into an electrical signal that can be measured.
+<P>
+These telescopes are huge - many tens of metres across, which raises
+the obvious question: why build them so big?
+
+<H2>Sensitivity and resolution</H2>
+
+Radio astronomers want to be able to measure objects in the sky that
+can be very small or very faint (often they are both). To measure
+faint objects, increasing the collecting area of the dish will
+increase the amount of radiation that is focussed onto the
+receiver. The ability to discertain small detail in sky is called the
+telescope's <EM>resolution</EM> and this is governed by the diameter of
+the dish.
+<P>
+So to build more sensitive telescopes with better resolution,
+astronomers simply build bigger dishes - up to a certain limit. Due to
+structural limits, one can only build them so big (up to a hundred
+metres or so). Certainly dishes of, say, 5 kilometres are out of the
+question - especially if you want to be able to steer them around to
+point at different parts of the sky.
+
+<H2>Radio interferometry</H2>
+
+Radio interferometry is a way of getting the extra diameter, but
+without huge dish sizes. By connecting a number of small dishes
+together, astronomers can "simulate" a large dish with the diameter
+equal to the largest separation between the <EM>elements</EM>.
+<P>
+If you just have a row of telescopes, such as the 
+<A HREF="/">Australia Telescope Compact Array</A>, the result is a
+telescope with great resolution in one direction but poor resolution in
+the other. However, by waiting for 6 hours, the earth will have
+rotated the telescope with respect to the object in the sky to provide
+good resolution in the other direction.
+<P>
+By plotting the <EM>virtual tracks</Em> that the antennas trace out as
+the earth rotates, astronomers can gauge how good the telescope will
+be a resolving objects in the sky. This plot is referred to as the
+<EM>uv-coverage</EM> as the two axes are U and V (it has nothing to do
+with ultra-violet radiation!).
+<P>
+The uv-coverage is not a mask on the image itself, but is a mask on
+the fourier transform of the image. It shows where on the fourier
+plane the image has been sampled. It's a bit like putting the
+uv-coverage mask over the aperture of an optical telescope.
+
+<H2>An example</H2>
+
+The best way to get a feel for what is going on is to work through
+some examples. 
+<P>
+Start the applet (click on the image to start the applet):
+
+<P><CENTER><A HREF="../vri.html">
+<IMG SRC="init_small.gif" ALT="The VRI applet at startup">
+</A></CENTER><P>
+
+At the top of the applet is a row of widgets that allow control of
+some of the observatory parameters. They are (from left to right): the
+observatory (a number of preset telescopes), the latitude of the
+observatory (negative latitudes are south of the equator), the number
+of antennas/elements, the diameter of each antenna (in metres) and the
+minimum elevation limit of the antennas (in degrees above the
+horizon).
+
+<P><CENTER>
+<IMG SRC="obs.gif" ALT="The VRI observatory parameters">
+</CENTER><P>
+
+For out tutorial, set the number of antennas to 3. By clicking on the
+<B>Plot</B> button, the resultant uv-coverage will be displayed in the
+lower right panel.
+
+<P><CENTER>
+<IMG SRC="uv1.gif" ALT="The VRI uv-coverage plot" ALIGN=TOP>
+<IMG SRC="plot.gif" ALT="The VRI plot button" ALIGN=TOP>
+</CENTER><P>
+
+The white line in the uv-coverage plot shows the scale of the
+plot. <EM>Lambda</EM> is the greek letter used to denote
+wavelength. 100 klambda is therefore 100,000 wavelengths. If the
+wavelength is 10 millimetres, 100 klambda is 1 kilometre. This
+means that with the same antenna spacing, doubling the frequency of
+the observation doubles the resolution of the telescope. The down side
+is that higher frequency observations are harder to make (electronic,
+weather and other technical challenges), and at different frequencies,
+radio objects in the sky might look different in brightness and shape.
+<P>
+Using the mouse, try dragging the antennas about on the observatory
+layout map. After placing them, click again on the plot button.
+<P>
+
+<P><CENTER>
+<IMG SRC="ant1.gif" ALT="VRI antenna positions" ALIGN=TOP>
+<IMG SRC="ant2.gif" ALT="VRI antenna positions" ALIGN=TOP>
+</CENTER><P>
+
+On the "antenna map", the bar at the bottom left shows the scale in
+kilometers. On all of the display panels, the zoom buttoms will allow
+you to look more closely at the graph, map or images.
+
+<P><CENTER>
+<IMG SRC="zoom.gif" ALT="The VRI zoom buttons" ALIGN=TOP>
+</CENTER><P>
+
+Also, by placing the mouse cursor over one of the displays, the cursor
+keys can be used to scroll the image about. The PgUp and PgDn keys
+also zoom the display, to compliment the cursor control.
+<P>
+The uv-coverage is also affected by where the object is in the sky and
+for how long you observe it. VRI can simulate this with <EM>hour
+angle</EM> and <EM>declination</EM> control.
+<P>
+All objects in the sky will rise every day in the east and set in the
+west. During that time they will cross an imaginary line called the 
+<EM>meridian</EM>, which runs from North to South, passing
+overhead. This line is also referred to as having an hour angle of
+zero. A full observation usually goes for 12 hours, 6 hours before and
+after the source crosses the meridian (i.e. <EM>transit</EM>). VRI can
+simulate the different amounts of observing time by altering the
+starting and finishing hour angle of the observation.
+
+<P><CENTER>
+<IMG SRC="uv1.gif" ALT="VRI antenna positions" ALIGN=TOP><BR>
+<IMG SRC="ha1.gif" ALT="VRI hour angle control" ALIGN=TOP>
+<P>
+<IMG SRC="uv2.gif" ALT="VRI antenna positions" ALIGN=TOP><BR>
+<IMG SRC="ha2.gif" ALT="VRI hour angle control" ALIGN=TOP>
+</CENTER><P>
+
+The <EM>declination</EM> (celestial latitude) of the radio source will
+also affect the resultant uv-coverage.
+
+<P><CENTER>
+<IMG SRC="uv1.gif" ALT="VRI antenna positions" ALIGN=TOP><BR>
+<IMG SRC="dec1.gif" ALT="VRI declination control" ALIGN=TOP>
+<P>
+<IMG SRC="uv3.gif" ALT="VRI antenna positions" ALIGN=TOP><BR>
+<IMG SRC="dec3.gif" ALT="VRI declination control" ALIGN=TOP>
+</CENTER><P>
+
+As you can see, a east-west row of antennas will have better coverage
+of a source near the celestial pole than it will of a source near the
+equator. Also, because of the minimum elevation limit of the antennas,
+it might not be possible to always observe for 6 hours either side of
+transit for sources near the equator. Some sources will only be about
+the horizon for a short period each day. Try dragging the declination
+slider further and further away from the pole and watch the hour angle
+sliders shrink in their range.
+
+<H2>Images and transforms</H2>
+
+On the left hand side of the VRI applet, there are two panels for
+images and their transforms. Using the source widget, you can select
+different objects to examine.
+
+<P><CENTER>
+<IMG SRC="source.gif" ALT="VRI image selection" ALIGN=TOP><BR>
+</CENTER><P>
+
+On selection, the image will appear in the top left display panel. The
+transform buttons <B>FFT</B> and <B>FFT-1</B> (FFT is fast fourier
+transform) will convert the image to the transform and vice versa.
+Try doing this for different sources. The following is for a
+(simulated) radio galaxy. The amplitude of the transform is shown
+here.
+
+<P><CENTER>
+<IMG SRC="fft.gif" ALT="VRI FFT buttons" ALIGN=CENTER>
+<IMG SRC="im1.gif" ALT="VRI image of a source" ALIGN=CENTER>
+<IMG SRC="fft1.gif" ALT="VRI fourier transform of a source" ALIGN=CENTER>
+</CENTER><P>
+
+Fourier transforms are, in general, arrays of complex numbers; each
+pixel having both a phase and amplitude component. The different
+representations of the fourier plane can be selected in VRI.
+
+<P><CENTER>
+<IMG SRC="disp.gif" ALT="VRI fourier plane display type" ALIGN=TOP>
+</CENTER><P>
+
+Using the <B>Apply</B> button, you can blank out the portions of the
+uv-plane that were note sampled by the observation of the object. 
+
+<P><CENTER>
+<IMG SRC="apply.gif" ALT="VRI uv-coverage apply button" ALIGN=CENTER>
+<IMG SRC="im2.gif" ALT="VRI image of a source" ALIGN=CENTER>
+<IMG SRC="fft2.gif" ALT="VRI fourier transform of a source" ALIGN=CENTER>
+</CENTER><P>
+
+The image (left) indicates how the source would appear if observed
+with that particular antenna/time configuration. As you can see, with
+just 3 antennas, the image is not very good. To improve it, more
+antennas can be used, or the observation repeated with antennas in
+different locations. Some observatories have antennas that can be
+moved, this allows more complete uv-coverage of an object to be
+built-up over time. VRI allows you to select the different
+configurations of the ATCA <I>et al.</I>.
+
+<P><CENTER>
+<IMG SRC="config.gif" ALT="VRI antenna configuration control" ALIGN=CENTER>
+</CENTER><P>
+
+You can simulate the addition of different configurations by clicking
+on the <B>Add</B> button after each observation is simulated. When the
+<B>Apply</B> button is clicked, all the accumulated observations will
+be 
+
+<H2>Experiment!</H2>
+
+The whole idea of the VRI applet is for you, the user, to experiment
+with various parameters that go into a radio interferometer
+observation. Here are some experiments to try.
+
+<UL>
+<LI> Set the hour-angle <EM>range</EM> to zero (this is what is known
+     as a "cut"). Accumulate cuts at hour angles of 0, +4 and -4. Look
+     at the uv-coverage for 6 antennas and what the resultant image
+     looks like for a point source and a more complicated one
+     (e.g. the radio galaxy).
+<LI> Set the declination to zero. See what happens on an east-west
+     array. Now try moving antennas off the E-W line and look at the
+     new uv-coverage.
+</UL>
+
+
+<H2>Further information</EM>
+
+<UL>
+<LI> <A HREF="../vri.html">V.R.I.</A>  -  the Virtual Radio Interferometer 
+     applet itself
+<LI> <A HREF="guide.html">VRI Guide</A> - general description of operation
+     and concepts for newcomers to radio interferometry
+<LI> <A HREF="intro.html">VRI Introduction</A> - a general description of what
+     VRI is all about
+<LI> <A HREF="doc.html">VRI Documentation</A> - technical notes on running the
+     Java applet
+</UL>
+
+<H2>Reference</H2>
+
+<OL>
+<LI> McKay, D.J., McKay, N.P.F., <CITE>Using Java for Astronomy: The
+     Virtual Radio Interferometer Example</CITE>, in preparation, 1997.
+</OL>
+
+<H2>Comments?</H2>
+
+We would greatly appreciate any comments you may have on this
+documentation, or the VRI java applet.
+Please e-mail them to Nuria McKay
+(<A HREF="mailto:nm@jb.man.ac.uk"><CODE>nm@jb.man.ac.uk</CODE></A>).
+
+<P>
+<HR>
+<P>
+Return to the
+<A HREF="http://www.jb.man.ac.uk">
+NRAL - Jodrell Bank</A>
+Home page
+<P>
+Return to the 
+<A HREF="http://www.jb.man.ac.uk/merlin/logo.html">
+Merlin </A>
+Home Page
+<P>
+<HR>
+<P>
+<ADDRESS>
+Original: dmckay@atnf.csiro.au (7-MAY-1997)<BR>
+Modified: nm@jb.man.ac.uk (10-Sep-1997)
+</ADDRESS>
+</BODY>
+</HTML>
