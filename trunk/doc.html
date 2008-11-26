@@ -1,0 +1,145 @@
+<HTML>
+<HEAD>
+<TITLE>VRI: Documentation</TITLE>
+</HEAD>
+<BODY>
+
+<H1><A HREF="../vri.html">V.R.I.  -  Virtual Radio Interferometer</A></H1>
+
+The <EM>Virtual Radio Interferometer</EM> (VRI) is an experimental
+Java applet written by Nuria McKay, Derek McKay and Mark Wieringa,
+from the 
+<A HREF="http://www.jb.man.ac.uk"> 
+  Nuffield Radio Astronomy Laboratories, Jodrell Bank
+</A> and the 
+<A HREF="http://wwwnar.atnf.csiro.au"> 
+  Australia Telescope Compact Array
+</A>.
+<P>
+It simulates various radio interferometers, and allows users to
+conduct a number of "what-if" experiments. It extends the prototype
+version (
+<A HREF="http://wwwnar.atnf.csiro.au/astronomy/uvTest.html">
+  uvTest
+</A>) by allowing accumulation of arrays, improved control and fourier 
+transforms.
+
+<H2>Basic UV operation</H2>
+
+The VRI appletis divided into four panels, (clockwise from top right)
+the observatory map, the UV coverage plot, the UV plane and the image
+plane. Each of these panels can be scaled (using the <B>Zoom</B> buttons or
+the PGUP or PGDN keys) and scrolled (using the arrow keys). The
+observatory map and UV coverage panels will show the scale by means of
+a scale bar. Configurations can be selected from the configuration
+menu.
+<P>
+The <B>Plot</B> button forces the current array layout to be plotted in the
+UV coverage panel. The UV coverage is also affected by the <B>Hour Angle</B>,
+<B>Declination</B> and <B>Frequency</B> selection at the bottom of the applet.
+<P>
+UV coverage from different arrays can be accumulated, byt pressing the
+<B>Add</B> button after each array has been selected. Old arrays can be
+plotted in blue or red and can be hidden, by selecting the appropriate
+option out of the <B>Accumulate</B> menu. The <B>Clear</B> 
+button will remove any
+stored arrays.
+
+<H2>Image and UV plane control</H2>
+
+VRI allows the user to also experiment with test images. The
+<B>Source</B> menu will allow the selection of different test
+sources. By selecting <B>file:</B>, alternative test sources can be
+entered. These should be .GIF files, no greater that 256x256 pixels.
+<P>
+Clicking on the <B>FFT</B> will casue the fourier transform of the
+current image to be displayed in the UV plane panel. Conversely,
+clicking on the <B>FFT-1</B> button will cause the inverse fourier
+transform of the UV plane to be displayed in the image panel.
+<P>
+The UV plane, comprising complex numbers, can be displayed in various
+forms. Choose the appropriate <B>Display</B> from the menu and wait a
+few seconds for the UV plane to be replotted.
+
+<H2>Applying UV coverage</H2>
+
+By pressing the <B>Apply</B> button, the current UV plane is masked by
+the current and accumulated UV coverage. By inverse transforming the
+masked UV plane, a simulation of the image, as if observed by such a
+synthesised aperture, can be obtained. As the scale of the images is
+arbitrary, the masking is down at the scaled level, allowing vastly
+difference arrays to be simulated (e.g. VSOP vs. ATCA). To compare
+arrays, make sure the UV plane and coverage displays are set at the
+scale for each application.
+
+<H2>Other observatories</H2>
+
+The <B>Obs:</B> menu and fields allow the user to control which
+observatory is used. Arbitrary observatories can be created, by
+adjusting the values in the various fields and pressing return for
+each alteration. It is also possible to drag the antennas about the
+observatory map, using the mouse, to simulate any configuration. New
+antennas are always "piled up" at the centre of the array, and will
+need to be moved. Don't use too many antennas, it will take forever to
+plot!
+<P>
+The authors can add additional observatories if there is enough
+demand. The required information we need is:
+<UL>
+<LI> Reference point (latitude and longitude of observatory)
+<LI> Number of antennas
+<LI> Antenna diameter
+<LI> Antenna elevation limit
+<LI> Station positions (with respect to the reference point)
+<LI> Stations between which, there is railway track
+<LI> Configurations (name plus station numbers)
+</UL>
+
+<H2>Notes</H2>
+
+The FFT, FFT-1, Plot and Display options all deal with a lot of data
+(especially for an interpretted language). 
+<P>
+While the authors hope that this applet will be useful, it is not a
+definative scientific tool. For more detailed analysis of UV coverage,
+etc. use 
+<A HREF="http://wwwatnf.atnf.csiro.au/Software/Analysis/miriad/">Miriad</A>,
+in particular, the
+<A HREF="http://wwwatnf.atnf.csiro.au/Software/Analysis/miriad/uvgen.html">
+UVGEN</A> task.
+<P>
+There is a bug in some versions of NetScape, which prevents
+recognition of keyboard keys like PGUP, PGDN, etc.
+<P>
+Sometimes, because of slow links, the test source images don't fully
+load. Just select them again. Also, the download time is fairly long,
+owing to the large amounts of code - an added incentive to visit the ATCA!
+
+<H2>Comments?</H2>
+
+We would greatly appreciate any comments you may have on this
+documentation, or the VRI java applet.
+Please e-mail them to Nuria McKay
+(<A HREF="mailto:nm@jb.man.ac.uk"><CODE>nm@jb.man.ac.uk</CODE></A>).
+
+<P>
+<HR>
+<P>
+Return to the
+<A HREF="http://www.jb.man.ac.uk">
+NRAL - Jodrell Bank</A>
+Home page
+<P>
+Return to the 
+<A HREF="http://www.jb.man.ac.uk/merlin/logo.html">
+Merlin </A>
+Home Page
+<P>
+<HR>
+<P>
+<ADDRESS>
+Original: dmckay@atnf.csiro.au (4-FEB-1997)<BR>
+Modified: nm@jb.man.ac.uk (10-Sep-1997)
+</ADDRESS>
+</BODY>
+</HTML>
