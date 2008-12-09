@@ -13,6 +13,7 @@ package nl.jive.vri;
 import java.applet.Applet;
 import java.lang.Math;
 import java.awt.image.*;
+import java.awt.geom.*;
 import java.awt.*;
 import java.net.*;
 import javax.swing.*;
@@ -281,8 +282,6 @@ class vriGreyDisp extends vriDisplay {
 	 //  boolean replot = false;
 	 URL imgURL;
 	 Image img;
-	 int imw;               // Width of the original image in pixels
-	 int imh;               // Height of the original image in pixels
 	 static int imsize;     // Size of the "squared" image
 	 String message = null; // Message to print on the Display
 	 String type = null;    // Used to select real/imag/amp/phase display
@@ -293,35 +292,29 @@ class vriGreyDisp extends vriDisplay {
 	 }
 
 	 public void paint(Graphics g) {
-		  Rectangle r = bounds();
-
-		  plotFocus(g);
+		  Graphics2D g2 = (Graphics2D) g;
+		  Rectangle r = getBounds();
 		  if (message != null) {
 				g.setColor(Color.red);
 				g.drawString(message, 20,20);
 		  } else if (img != null) {
-				
 				// Get current image scale
-				imh = img.getHeight(this);
-				imw = img.getWidth(this);
+				int imh = img.getHeight(this);
+				int imw = img.getWidth(this);
+				AffineTransform a = new AffineTransform();
+				a.translate(-imw/2.0, -imh/2.0);
+				a.preConcatenate(aff);
+
+				// System.err.println("Transform: "+a);
+				a.preConcatenate(AffineTransform.getTranslateInstance(getWidth()/2.0, getHeight()/2.0));
 				// Determine the actual image scale after scaling, and crop the
 				// displayScale to prevent it from being bigger than twice the image
 				// size (an arbitrarty decision, any limit may be imposed).
-				int sih = (int) ((double) imh / displayScale);
-				if (sih > r.height * 2)
-					 displayScale = 0.5 * (double)imh / (double)r.height;
-				int siw = (int) ((double) imw / displayScale);
-				if (siw > r.width * 2)
-					 displayScale = 0.5 *  (double)imw / (double)r.width;
-				// Okay, get the finalised image size.
-				sih = (int) ((double) imh / displayScale);
-				siw = (int) ((double) imw / displayScale);
-				// Determine the image coordinates
-				int x = displayCentre.x - siw/2;
-				int y = displayCentre.y - sih/2;
-				// Draw the image
-				g.drawImage(img, x, y, siw, sih, applet);
+				// DMS: We remove this arbitrary limit:
+				// if we wanted it it would be in zoomIn
+				g2.drawImage(img, a, applet);
 		  }
+		  plotFocus(g);
 	 }
 
 	 public void loadImage(String filename) {
@@ -350,8 +343,8 @@ class vriGreyDisp extends vriDisplay {
 		  if (img == null) {
 				throw new EmptyImageException();
 		  } 
-		  imh = img.getHeight(this);
-		  imw = img.getWidth(this);
+		  int imh = img.getHeight(this);
+		  int imw = img.getWidth(this);
 		  System.out.println("Got "+this+"image: size = "+imw+"x"+imh);
 		  int pix[] = new int[imh*imw];
 		  try {

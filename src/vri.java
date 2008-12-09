@@ -85,7 +85,7 @@ public class vri extends JApplet
 		  f.add("Center", vriTest);
 		  f.setSize(900, 900);
 		  f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		  f.show();
+		  f.setVisible(true);
 	 }
 
 	 /**
@@ -115,7 +115,7 @@ public class vri extends JApplet
 		  setLayout(null);
 		  setBackground(Color.lightGray);
 
-		  obs = vriObservatory.select("WSRT");
+		  obs = vriObservatory.select("MERLIN");
 
 		  aux = new vriAuxiliary();
 
@@ -193,10 +193,8 @@ public class vri extends JApplet
 		  
 		  add(allImgPanel);
 
-
 		  ImgDisp.addPropertyChangeListener(new PropertyChangeListener() {
 					 public void propertyChange(PropertyChangeEvent e) {
-						  System.err.println("** Image changed");
 						  UVpDisp.fft(ImgDisp.dat);
 						  // FIXME: would be nicer to check UVp is set
 						  float uvcov[] = UVcDisp.uvCoverage(ImgDisp.dat.imsize);
@@ -206,7 +204,6 @@ public class vri extends JApplet
 		  
 		  UVcDisp.addPropertyChangeListener(new PropertyChangeListener() {
 					 public void propertyChange(PropertyChangeEvent e) {
-						  System.err.println("** UVc changed");
 						  float uvcov[] = UVcDisp.uvCoverage(ImgDisp.dat.imsize);
 						  UVpConvDisp.applyUVc(uvcov, UVpDisp.fft);
 					 }
@@ -214,25 +211,24 @@ public class vri extends JApplet
 
 		  UVpConvDisp.addPropertyChangeListener(new PropertyChangeListener() {
 					 public void propertyChange(PropertyChangeEvent e) {
-						  System.err.println("** UVpConv changed");
 						  ImgDisp2.invfft(UVpConvDisp.fft);
 					 }
 				});
 
-		  ArrDisp.addPropertyChangeListener(new PropertyChangeListener() {
-					 public void propertyChange(PropertyChangeEvent e) {
-						  System.err.println(String.format("** ArrDisp changed: %s", e.getPropertyName()));
-						  UVcDisp.repaint();
-					 }
-				});
+		  ArrDisp.addPropertyChangeListener(UVcDisp);
 
 		  // this initialization stuff should be 
 		  // pushed down to the actual objects
+
+		  vriObservatory o = obs.select("MERLIN");
+		  ArrDisp.setObservatory(o);
+		  ArrDisp.repaint();
+
  		  String c = obs.defaultConfig();
  		  ArrEdit.config.setSelectedItem(c);
 
 		  UVpEdit.init();
-		  show();
+		  setVisible(true);
 		  ImgEdit.src_choice.setSelectedItem("Wide double");
 
 	 }
@@ -351,43 +347,6 @@ class vriArrEdit extends JPanel {
 				});
 		  Graphics gc = getGraphics();
 		  paintAll(gc);
-	 }
-}
-
-
-class vriUVcEdit extends JPanel {
-	 public JButton add;
-	 public JButton clear;
-	 public JComboBox colour;
-
-	 public vriUVcEdit(final vri parent) {
-		  setLayout(new GridLayout(0, 2));
-
-		  add(add = new JButton("Add"));
-		  add.addActionListener(new ActionListener() {
-					 public void actionPerformed(ActionEvent e) {
-						  parent.UVcDisp.addTracks();
-					 }
-				});
-		  add(new JLabel("Accumulate", JLabel.LEFT));
-		  add(clear = new JButton("Clear"));
-		  clear.addActionListener(new ActionListener() {
-					 public void actionPerformed(ActionEvent e) {
-						  parent.UVcDisp.clearTracks();
-					 }
-				});
-		  String[] cols = {"Blue", "Red", "Hide"};
-		  add(colour = new JComboBox(cols));
-		  colour.addActionListener(new ActionListener() {
-					 public void actionPerformed(ActionEvent e) {
-						  String s = colour.getSelectedItem().toString();
-						  System.err.println("Setting UVcDisp colour to "+s);
-						  if (s.equals("Blue")) parent.UVcDisp.setColour(Color.blue);
-						  else if (s.equals("Red"))  parent.UVcDisp.setColour(Color.red);
-						  else if (s.equals("Hide")) parent.UVcDisp.setColour(Color.black);
-
-					 }
-				});
 	 }
 }
 
@@ -654,7 +613,8 @@ class HourAngleDec extends JPanel {
 
 
 
-class vriAuxEdit extends JPanel {
+class vriAuxEdit extends JPanel 
+implements ActionListener {
 	 JTextField fr_field;
 	 JTextField bw_field;
 	 vriAuxiliary aux;
@@ -676,6 +636,8 @@ class vriAuxEdit extends JPanel {
 		  fr_panel.add(fr_field = new JTextField("4800.0", 8));
 		  fr_panel.add(new JLabel("MHz", Label.LEFT));
 		  vb.add(fr_panel);
+
+		  fr_field.addActionListener(this);
 
 		  JPanel bw_panel = new JPanel();
 		  bw_panel.add(new JLabel("Bandwidth:"));
@@ -701,7 +663,6 @@ class vriAuxEdit extends JPanel {
 								System.err.println("dec: "+e.getNewValue());
 								aux.dec = Math.toRadians((Integer)e.getNewValue());
 						  }
-						  parent.UVcDisp.clearTracks();
 						  parent.UVcDisp.repaint();
 					 }
 				});
@@ -709,23 +670,12 @@ class vriAuxEdit extends JPanel {
 		  bw_field.setEditable(false);
 	 }
 
-	 public boolean handleEvent(Event e) {
-		  if (e.target == fr_field && e.id == Event.KEY_PRESS) {
-				if (e.key == 10) {
-					 Double d = new Double(fr_field.getText());
-					 aux.freq = d.doubleValue();
-				} else {
-					 return false;
-				}
-		  } else if (e.target == fr_field && e.id == Event.LOST_FOCUS) {
-				Double d = new Double(fr_field.getText());
-				aux.freq = d.doubleValue();
-		  } else {
-				return false;   // Nothing we can do here - pass the buck to the parent!
-		  }
-		  return true;
-	 }
 
+
+	 public void actionPerformed(ActionEvent e) {
+		  Double d = new Double(fr_field.getText());
+		  aux.freq = d.doubleValue();
+	 }
 }
 
 
@@ -781,7 +731,7 @@ class vriObsEdit extends JPanel {
 
 	 public void setFields(vriObservatory obs) {
 		  lat_field.setText(String.format("%.3f", parent.obs.latitude * 180.0 / Math.PI));
-		  ant_field.setText(String.format("%d", parent.obs.num_antennas));
+		  ant_field.setText(String.format("%d", parent.obs.antennas.length));
 		  dia_field.setText(String.format("%.3f", parent.obs.ant_diameter));
 		  el_field.setText(String.format("%.3f", parent.obs.ant_el_limit * 180.0 / Math.PI));
 	 }

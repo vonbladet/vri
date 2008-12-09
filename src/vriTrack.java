@@ -19,7 +19,7 @@ class vriTrack {
   public vriTrack() {
   }
 
-  public vriTrack(vriStation s, vriStation e) {
+  public vriTrack(vriLocation s, vriLocation e) {
     start = s;
     end = e;
     rise = end.NS - start.NS;
@@ -27,7 +27,8 @@ class vriTrack {
     length = Math.sqrt( run*run + rise*rise );
   }
 
-  public double distance(vriAntenna a) {
+  public double distance(vriLocation a) {
     return rise * (a.NS - start.NS) - run * (a.EW - start.EW) / length;
   }
 }
+

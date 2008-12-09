@@ -10,116 +10,139 @@
 package nl.jive.vri;
 
 import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.*; // AffineTransform
+import javax.swing.*;
 import java.beans.*;
 
-class vriDisplay extends Canvas {
-	 public double displaySize;    // Width of display
-	 public double displayScale;   // Scale of display
-	 public double defaultScale;   // Scale of display
-	 public Point displayCentre;   // Centre point of display
-	 public Point defaultCentre;   // Centre point of display
-	 boolean focus = false;        // True if "display" is in focus
+class vriDisplay extends JComponent
+	 implements FocusListener
+					
+{
+	 int width, height;
+	 AffineTransform defaultTransform, aff;
+
+	 boolean hasFocus;
 	 
 	 protected PropertyChangeSupport propChanges;
 
 	 public vriDisplay() {
-		  int w = 200;
-		  int h = 200;
-		  displaySize = (double) w - 1;
-		  displayScale = 1.0;
-		  defaultScale = 1.0;
-		  displayCentre = new Point(w/2, h/2);
-		  defaultCentre = new Point(w/2, h/2);
-		  setSize(w, h);
+		  width = 200;
+		  height = 200;
+		  aff = new AffineTransform();
+		  // aff.translate(width/2.0, height/2.0);
+		  defaultTransform = (AffineTransform) aff.clone();
+		  hasFocus = false;
 		  //    System.out.println(this);
 		  propChanges = new PropertyChangeSupport(this);
-
+		  addMouseListener(new Mousey());
+		  addKeyListener(new Keyboardy());
+		  setFocusable(true);
+		  addFocusListener(this);
 	 }
 
-	 public void plotFocus(Graphics g) {
-		  Rectangle r = bounds();
-
-		  if (focus) {
-				g.setColor(Color.cyan);
-				g.drawRect(0, 0, r.width-1, r.height-1);
-		  } else {
-				g.setColor(Color.black);
-				g.drawRect(0, 0, r.width-1, r.height-1);
-		  }
+	 public Dimension getPreferredSize() {
+		  return new Dimension(width, height);
 	 }
 
-	 public void displayShift(int x, int y) {
-		  displayCentre.translate(x,y);
+	 double getDisplayScale() {
+		  return aff.getScaleX();
+	 }
+
+	 public void displayShift(double x, double y) {
+		  aff.translate(x, y);
 		  repaint();
 	 }
 
-	 public void zoomIn() {
-		  displayCentre.x += (displayCentre.x - defaultCentre.x) * .41;
-		  displayCentre.y += (displayCentre.y - defaultCentre.y) * .41;
-		  displayScale /= 1.41;
+	 public void zoomIn() {	
+		  // scale(1.41, 1.41);
+		  double s = 1.41;
+		  aff.scale(s, s);
 		  repaint();
 	 }
 
 	 public void zoomOut() {
-		  displayCentre.x -= (displayCentre.x - defaultCentre.x) * (1.0 - 1.0/1.41);
-		  displayCentre.y -= (displayCentre.y - defaultCentre.y) * (1.0 - 1.0/1.41);
-		  displayScale *= 1.41;
+		  aff.scale(1/1.41, 1/1.41);
 		  repaint();
 	 }
 
 	 public void zoomReset() {
-		  displayScale = defaultScale;
-		  displayCentre.x = defaultCentre.x;
-		  displayCentre.y = defaultCentre.y;
+		  aff = defaultTransform;
 		  repaint();
 	 }
 
-	 public boolean gotFocus(Event e, Object arg) {
-		  focus = true;
+	 public void plotFocus(Graphics g) {
+		  Rectangle r = getBounds();
+		  g.setColor(hasFocus ? Color.cyan : Color.black);
+		  g.drawRect(0, 0, r.width-1, r.height-1);
+	 }
+
+	 public void focusGained(FocusEvent e) {
 		  Graphics g = getGraphics();
+		  hasFocus = true;
 		  plotFocus(g);
-		  return true;
-	 }
+	 }	 
 
-	 public boolean lostFocus(Event e, Object arg) {
-		  focus = false;
+	 public void focusLost(FocusEvent e) {
 		  Graphics g = getGraphics();
+		  hasFocus = false;
 		  plotFocus(g);
-		  return true;
 	 }
 
-	 public boolean mouseEnter(Event e, int x, int y) {
-		  requestFocus();
-		  return true;
-	 }
-
-	 public boolean mouseExit(Event e, int x, int y) {
-		  requestFocus();
-		  return true;
-	 }
-
-	 public boolean keyDown(Event e, int key) {
-
-		  int shift = (int)( displaySize/20.0 );
-		  if(e.shiftDown()) shift = (int)( displaySize/5.0 );
-
-		  switch(key) {
-		  case Event.UP: displayShift(0, shift); break;
-		  case Event.DOWN: displayShift(0, -shift); break;
-		  case Event.LEFT: displayShift(shift, 0); break;
-		  case Event.RIGHT: displayShift(-shift, 0); break;
-		  case Event.PGDN: zoomIn();
-				break;
-		  case Event.PGUP: zoomOut();
-				break;
-		  case Event.HOME: zoomReset();
-				break;
-		  default: break;
+	 class Mousey extends MouseAdapter {
+		  public void mouseEntered(MouseEvent e) {
+				boolean b = requestFocusInWindow();
 		  }
-		  return true;
 	 }
 
-  	 public void addPropertyChangeListener(PropertyChangeListener l)
+	 class Keyboardy extends KeyAdapter {
+		  public void keyPressed(KeyEvent e) {
+
+				int mods = e.getModifiersEx();
+
+				double shift;
+				double w  = (double)width;
+				if ((mods & KeyEvent.SHIFT_DOWN_MASK) == KeyEvent.SHIFT_DOWN_MASK) {
+					 shift = (w/5.0);
+				} else {
+					 shift = (w/20.0);
+				}
+
+				int key = e.getKeyCode();
+
+				switch(key) {
+				case KeyEvent.VK_UP: 
+				case KeyEvent.VK_KP_UP:
+					 displayShift(0, shift); 
+					 break;
+				case KeyEvent.VK_DOWN:
+				case KeyEvent.VK_KP_DOWN:
+					 displayShift(0, -shift); 
+					 break;
+				case KeyEvent.VK_LEFT: 
+				case KeyEvent.VK_KP_LEFT:
+					 displayShift(shift, 0); 
+					 break;
+				case KeyEvent.VK_RIGHT: 
+				case KeyEvent.VK_KP_RIGHT: 
+					 displayShift(-shift, 0); 
+					 break;
+				case KeyEvent.VK_PAGE_DOWN: 
+					 zoomIn();
+					 break;
+				case KeyEvent.VK_PAGE_UP: 
+					 zoomOut();
+					 break;
+				case KeyEvent.VK_HOME: 
+					 zoomReset();
+					 break;
+				default: break;
+				}
+		  }
+	 }
+	 
+
+	 public void addPropertyChangeListener(PropertyChangeListener l)
 	 {
 		  propChanges.addPropertyChangeListener(l);
 	 }
@@ -127,7 +150,4 @@ class vriDisplay extends Canvas {
 	 {
 		  propChanges.removePropertyChangeListener(l);
 	 }
-
-
-
 }
