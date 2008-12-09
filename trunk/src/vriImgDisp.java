@@ -29,6 +29,8 @@ class vriImgDisp extends vriGreyDisp {
 		  try {
 				
 				int pix[] = imgToPix(img);
+				int imh = img.getHeight(this);
+				int imw = img.getWidth(this);
 				imsize = vriUtils.getImsize(imh, imw);
 				System.err.println("Imsize: "+imsize);
 				vriUtils.greyPix(pix, imh, imw);
@@ -44,6 +46,7 @@ class vriImgDisp extends vriGreyDisp {
 		  } catch (EmptyImageException e) {
 				System.err.println("ImgDisp: Empty image");
 		  }
+		  repaint();
 	 }
 
 	 public void invfft(FFTArray fft) {
