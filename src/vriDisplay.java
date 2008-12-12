@@ -19,21 +19,15 @@ class vriDisplay extends JComponent
 	 implements FocusListener
 					
 {
-	 int width, height;
 	 AffineTransform defaultTransform, aff;
-
 	 boolean hasFocus;
 	 
 	 protected PropertyChangeSupport propChanges;
 
 	 public vriDisplay() {
-		  width = 200;
-		  height = 200;
 		  aff = new AffineTransform();
-		  // aff.translate(width/2.0, height/2.0);
 		  defaultTransform = (AffineTransform) aff.clone();
 		  hasFocus = false;
-		  //    System.out.println(this);
 		  propChanges = new PropertyChangeSupport(this);
 		  addMouseListener(new Mousey());
 		  addKeyListener(new Keyboardy());
@@ -42,6 +36,9 @@ class vriDisplay extends JComponent
 	 }
 
 	 public Dimension getPreferredSize() {
+		  int width, height;
+		  width = 200;
+		  height = 200;
 		  return new Dimension(width, height);
 	 }
 
@@ -83,6 +80,36 @@ class vriDisplay extends JComponent
 		  plotFocus(g);
 	 }	 
 
+	 double roundPower(double l) {
+		  double power = Math.log10(l);
+		  double res = Math.pow(10.0, Math.floor(power));
+		  return res;
+	 }
+
+	 double roundUpPower(double l) {
+		  double power = Math.log10(l);
+		  double res = Math.pow(10.0, Math.ceil(power));
+		  return res;
+	 }
+
+	 static String roundUnit(double l, String unit) {
+		  // System.err.println("roundUnit: "+l);
+		  int exp = (int)Math.floor(Math.log10(l));
+		  String prefix = "";
+		  double value = l;
+		  if (exp < 0) {
+				prefix = "m";
+				value = l*1000.0;
+		  } else if (0 <= exp && exp < 3) {
+				prefix = "";
+				value = l;
+		  } else if (3 <= exp) {
+				prefix = "k";
+				value = l/1000.0;
+		  }
+		  return Double.toString(value)+String.format(" %s%s", prefix, unit);
+	 }
+
 	 public void focusLost(FocusEvent e) {
 		  Graphics g = getGraphics();
 		  hasFocus = false;
@@ -101,6 +128,7 @@ class vriDisplay extends JComponent
 				int mods = e.getModifiersEx();
 
 				double shift;
+				int width = getWidth();
 				double w  = (double)width;
 				if ((mods & KeyEvent.SHIFT_DOWN_MASK) == KeyEvent.SHIFT_DOWN_MASK) {
 					 shift = (w/5.0);

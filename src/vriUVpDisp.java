@@ -17,6 +17,7 @@ class vriUVpDisp extends vriGreyDisp {
 
 	 public vriUVpDisp(Applet app) {
 		  super(app);
+		  setUnit("lambda");
 		  message = new String("No current transform");
 	 }
 

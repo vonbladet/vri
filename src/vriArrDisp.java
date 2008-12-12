@@ -100,7 +100,8 @@ class vriArrDisp extends vriDisplay {
 		  return contours2D;
 	 }
 
-	 private static Polygon pointsToPolygon(LinkedList<nl.jive.earth.Point2D> pts, AffineTransform t) {
+	 private static Polygon pointsToPolygon(LinkedList<nl.jive.earth.Point2D> pts, 
+														 AffineTransform t) {
 		  double r_earth = 6378137.0;
 		  int[] xs = new int[pts.size()];
 		  int[] ys = new int[pts.size()];
@@ -135,8 +136,8 @@ class vriArrDisp extends vriDisplay {
 						  LinkedList<nl.jive.earth.Point2D> pts = cont.getPoints();
 						  Polygon poly = pointsToPolygon(pts, trans);
 						  Rectangle rec = poly.getBounds();
-						  System.err.println(String.format("*** x %d y %d width %d height %d",
-																	  rec.x, rec.y, rec.width, rec.height));
+						  // System.err.println(String.format("*** x %d y %d width %d height %d",
+						  //									  rec.x, rec.y, rec.width, rec.height));
 						  g2.fill(poly);
 					 } else {
 						  System.err.println("*** Unclosed contour, skipping");
@@ -163,12 +164,6 @@ class vriArrDisp extends vriDisplay {
 
 	 }
 	 
-	 double roundPower(double l) {
-		  double res = Math.log(l)/Math.log(10.0);
-		  res = Math.pow(10.0, Math.floor(res));
-		  return res;
-	 }
-
 	 private void paintScale(Graphics g) {
 		  // Draw a scale
 		  Rectangle r = getBounds();
@@ -193,7 +188,7 @@ class vriArrDisp extends vriDisplay {
 
 		  Graphics2D g2 = (Graphics2D) g;
 
-		  System.err.println("Obs EW: "+obs.ref.EW+" NS: "+obs.ref.NS);
+		  // System.err.println("Obs EW: "+obs.ref.EW+" NS: "+obs.ref.NS);
 
 		  for (int j = 0; j < obs.stations.length; j++) {
 				vriLocation station = obs.stations[j];
@@ -244,7 +239,11 @@ class vriArrDisp extends vriDisplay {
 	 }
 
 	 public void paint(Graphics g) {
-		  double geoScale = getWidth()/4.0e5;
+		  System.err.println("Obs scale: " + obs.getLengthScale());
+		  // double geoScale = getWidth()/4.0e5;  // 500000.0
+		  // double geoScale = getWidth()/5.0e5;  // 500000.0
+		  double geoScale = getWidth()/obs.getLengthScale();
+
 		  AffineTransform geoTrans = AffineTransform.getScaleInstance(geoScale, -geoScale);
 		  trans = (AffineTransform)geoTrans.clone();
 		  // probably guaranteed to be (0,0):
