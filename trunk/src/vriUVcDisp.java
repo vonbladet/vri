@@ -20,19 +20,39 @@ implements PropertyChangeListener {
 	 vriObservatory obs;
 	 vriAuxiliary aux;
 	 vriLocation selectedAnt;
+	 String unit;
+	 AffineTransform baseTransform;
+	 double c = 299.792458; // in km/s because freq is in kHz
+	 double convScale;
 
 	 public vriUVcDisp(vriObservatory o, vriAuxiliary a) {
 		  super();
+		  unit = "lambda";
 		  selectedAnt = null;
-		  obs = o;
+		  setObservatory(o);
 		  aux = a;
+		  double lengthScale = obs.getLengthScale(); // in m
+		  double scale = roundUpPower(lengthScale/(1000*getReferenceLambda()));
+		  System.err.println("Default scale: "+scale);
+		  System.err.println("Default lambda: "+getReferenceLambda());
+		  baseTransform = AffineTransform.getScaleInstance(scale, scale);   
+		  convScale = scale; // just in case it isn't taken care of.
 		  aff = new AffineTransform();
-		  aff.scale(10000.0, 10000.0);   // Expressed in kilowavelengths
 		  defaultTransform = (AffineTransform) aff.clone();
 	 }
 
 	 public void setObservatory(vriObservatory aobs) {
 		  obs = aobs;
+		  double lengthScale = obs.getLengthScale(); // in m
+		  double scale = roundUpPower(lengthScale/(1000*getReferenceLambda()));
+		  baseTransform = AffineTransform.getScaleInstance(scale, scale);   
+	 }
+
+	 public double getConvScale() {
+		  return convScale;
+	 }
+	 public void setConvScale(double cs) {
+		  convScale = cs;
 	 }
 
 	 public void propertyChange(PropertyChangeEvent e) {
@@ -43,27 +63,26 @@ implements PropertyChangeListener {
 		  }
 	 }
 
-	 double roundPower(double l) {	
-		  l = Math.log(l)/Math.log(10.0);
-		  l = Math.pow(10.0, Math.floor(l));
-		  return l;
-	 }	  
+	 double getLambda() {
+		  return c/aux.freq;
+	 }
+
+	 double getReferenceLambda() {
+		  return c/4800.0;
+	 }
 
 	 void paintScale(Graphics g) {
 		  Graphics2D g2 = (Graphics2D) g;
 		  Rectangle r = getBounds();
-		  double displayScale = getDisplayScale();
-
+		  int width = getWidth();
+		  double displayScale = baseTransform.getScaleX()/aff.getScaleX();
 		  g2.setColor(Color.white);
+		  // double mainScale = 1000.0;
 		  double l = roundPower(displayScale * (width - 20.0) / width);
 		  int m = (int) Math.round(l * width / displayScale);
 		  g.drawLine(10, r.height-10, 10+m, r.height-10);
 		  String str = new String();
-		  if(l <= 1.0) {
-				str = Double.toString(l*1000.0) + "lambda";
-		  } else {
-				str = Double.toString(l) + "klambda";
-		  }
+		  str = roundUnit(1000*l, "lambda");
 		  g2.drawString(str, 10, r.height-12);
 	 }
 
@@ -83,7 +102,8 @@ implements PropertyChangeListener {
 		  g2.drawRect(0, 0, r.width-1, r.height-1);
 		  int width = getWidth();
 		  // Calculate the metres-to-wavelengths-to-pixels conversion scale factor
-		  double s = aux.freq / 299.792458 / 1000.0 * width / displayScale;
+		  double s = (1 / (1000.0*getLambda()) * 
+						  width / baseTransform.getScaleX() * aff.getScaleX());
 
 		  // Do the shadow zone (use the tx/ty/tw/th parameters temporarily)
 		  tx = ty = (int) (-s * obs.ant_diameter);
@@ -147,17 +167,21 @@ implements PropertyChangeListener {
 
 	 public float[] uvCoverage(int size) {
 		  Rectangle r = getBounds();
-		  double displayScale = getDisplayScale();
 		  float[] uvcov = new float[size*size];
-		  int tx, ty;
-		  int tw, th;          // Used for the shadow plot
 
 		  System.out.print("Applying UV coverage... ");
 		  System.out.flush();
 
 		  // Calculate the metres-to-wavelengths-to-pixels conversion scale factor
-		  double s = aux.freq / 299.792458 / 1000.0 * width / displayScale;
-
+		  //		  int width = getWidth();
+//  		  double s = (1 / (1000.0 * getLambda()) * 
+//  						  width / baseTransform.getScaleX());
+		  // FIXME: we don't use lambda?!
+		  // double s = (size / convScale);
+		  double s = 1/(getLambda())*(size/convScale);
+		  System.err.println("ConvScale: "+convScale+" baseScale: "+
+									baseTransform.getScaleX());
+		  System.err.println("s: "+s);
 		  // Plot baselines
 		  Baseline[] baselines = obs.getBaselines();
 		  for (int i = 0; i<baselines.length; i++) {

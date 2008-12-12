@@ -11,6 +11,8 @@ package nl.jive.vri;
 
 import java.util.*;
 import nl.jive.earth.*;
+import java.beans.*;
+
 
 class UV {
 	 double u, v;
@@ -96,13 +98,12 @@ class TrackPoint {
 	 }
 }
 
-
-
 class vriObservatory {
 	 public String menu_name;      // Name in observatory pop-up menu
 	 public String full_name;      // Proper name of obs.
 	 public double latitude;       // Latitude (radians)
 	 public double longitude;      // Longitude (radians) (not used)
+	 public double lengthScale;    // of observatory, in m
 	 public double ant_diameter;   // Diameter of antennas (metres)
 	 public double ant_el_limit;   // Antenna lower elevation limit (degrees)
 	 public vriConfig[] cfg;       // Set of "standard array configurations"
@@ -113,11 +114,12 @@ class vriObservatory {
 	 public int cfg_stations[][];  // Array of station numbers of configs
 	 public String cfg_name[];     // Array of names of configs
 	 public ArrayList<Component> components;
+	 private static PropertyChangeSupport propChanges;
 
 	 static NationReader nr;
 
 	 static HashMap<String, vriObservatory> observatories;
-
+	 
 	 static {
 		  try {
 				nr = new NationReader("gis.json");
@@ -140,6 +142,7 @@ class vriObservatory {
 		  atca.ant_diameter = 22.0;
 		  atca.ant_el_limit = 12.0 * Math.PI / 180.0;
 		  atca.ref = new vriLocation();
+		  atca.lengthScale = 20e3;
 
 		  // Stations
 		  csi = new int[] {0, 2, 4, 6, 8, 10, 12, 14, 16, 32, 45, 64, 84, 98, 100, 
@@ -199,6 +202,7 @@ class vriObservatory {
 		  natca.menu_name = "New ATCA";
 		  natca.full_name = "Modified Australia Telescope Compact Array";
 		  natca.latitude = -0.529059644;
+		  natca.lengthScale = 20e3;
 		  natca.ant_diameter = 22.0;
 		  natca.ant_el_limit = 12.0 * Math.PI / 180.0;
 		  natca.ref = new vriLocation();
@@ -293,6 +297,7 @@ class vriObservatory {
 		  wsrt.menu_name = "WSRT";
 		  wsrt.full_name = "Westerbork Synthesis Radio Telescope";
 		  wsrt.latitude = +0.923574484;
+		  wsrt.lengthScale = 5e3;
 		  wsrt.ant_diameter = 25.0;
 		  wsrt.ant_el_limit = 0.0 * Math.PI / 180.0;
 		  wsrt.ref = new vriLocation();
@@ -333,6 +338,7 @@ class vriObservatory {
 		  merlin.full_name = "Multi Element Radio Linked Interferometer Network";
 		  
 		  merlin.latitude = +0.929160933;
+		  merlin.lengthScale = 500.0e3;
 		  //merlin.longitude = 0;
 		  //merlin.latitude = Math.toRadians(53.0 + 30.0/60);
 		  merlin.longitude = Math.toRadians(-1.0);
@@ -383,6 +389,7 @@ class vriObservatory {
 	 }
 
 	 public vriObservatory() {
+		  propChanges = new PropertyChangeSupport(this);
 	 }
 
 	 public static vriObservatory select(String selection) {
@@ -391,6 +398,7 @@ class vriObservatory {
 		  
 		  System.out.println(String.format("Selected %s", selection));
 		  vriObservatory obs = observatories.get(selection);
+		  propChanges.firePropertyChange("obs", null, obs);
 		  return obs;
 	 }
 
@@ -408,6 +416,10 @@ class vriObservatory {
 				}
 		  }
 		  return baselines;
+	 }
+	 
+	 double getLengthScale() {
+		  return lengthScale;
 	 }
 
 

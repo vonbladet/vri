@@ -12,9 +12,10 @@ package nl.jive.vri;
 
 import java.applet.Applet;
 import java.lang.Math;
+import java.awt.*;
 import java.awt.image.*;
 import java.awt.geom.*;
-import java.awt.*;
+import java.awt.font.*;
 import java.net.*;
 import javax.swing.*;
 import nl.jive.utils.*;
@@ -146,8 +147,10 @@ class vriUtils {
 				int inc = imw-1;
 				if(h == 0 || h == (imh-1)) inc = 1;
 				for(int w = 0; w < imw; w += inc) {
-					 mean += (float)(pix[h*imw + w] & 0x000000ff);  // Assume already greyscale -
-					 count++;                                       // i.e. red = green = blue
+					 mean += (float)(pix[h*imw + w] & 0x000000ff);  
+					 // Assume already greyscale -
+					 // i.e. red = green = blue
+					 count++;                                       
 				}
 		  }
 		  System.out.print("Edge sum = "+mean);
@@ -285,10 +288,52 @@ class vriGreyDisp extends vriDisplay {
 	 static int imsize;     // Size of the "squared" image
 	 String message = null; // Message to print on the Display
 	 String type = null;    // Used to select real/imag/amp/phase display
+	 double fullScale = 73000.0;
+	 String unit = "lobster";
 
 	 public vriGreyDisp(Applet app) {
 		  super();
 		  applet = app;
+	 }
+
+
+	 void setUnit(String u){
+		  unit = u;
+	 }
+	 String getUnit() {
+		  return unit;
+	 }
+	 void setFullScale(double s){
+		  fullScale = s;
+	 }
+	 double getFullScale(){
+		  return fullScale;
+	 }
+	 void paintScale(Graphics g) {
+		  Graphics2D g2 = (Graphics2D) g;
+		  Rectangle r = getBounds();
+		  int width = img.getWidth(this); // getWidth();
+		  double displayScale = getDisplayScale();
+		  g2.setColor(Color.blue);
+		  double l = roundPower(fullScale / displayScale * (width - 20.0) / width);
+		  int m = (int) Math.round(l * width * displayScale /  fullScale);
+		  String str = new String();
+		  str = roundUnit(l, unit);
+		  Font font = g2.getFont();
+		  FontRenderContext frc = g2.getFontRenderContext();
+		  Rectangle2D bounds = font.getStringBounds(str, frc); 
+		  g2.setColor(Color.white);
+		  int w;
+		  if (m<(int)bounds.getWidth()) {
+				w = (int)bounds.getWidth();
+		  } else {
+				w = m;
+		  }
+		  g2.fill(new Rectangle(10-4, r.height-12-(int)bounds.getHeight(), 
+										w+8, (int)bounds.getHeight()+5));
+		  g2.setColor(Color.black);
+		  g2.drawString(str, 10, r.height-12);
+		  g.drawLine(10, r.height-10, 10+m, r.height-10);
 	 }
 
 	 public void paint(Graphics g) {
@@ -304,15 +349,10 @@ class vriGreyDisp extends vriDisplay {
 				AffineTransform a = new AffineTransform();
 				a.translate(-imw/2.0, -imh/2.0);
 				a.preConcatenate(aff);
-
-				// System.err.println("Transform: "+a);
-				a.preConcatenate(AffineTransform.getTranslateInstance(getWidth()/2.0, getHeight()/2.0));
-				// Determine the actual image scale after scaling, and crop the
-				// displayScale to prevent it from being bigger than twice the image
-				// size (an arbitrarty decision, any limit may be imposed).
-				// DMS: We remove this arbitrary limit:
-				// if we wanted it it would be in zoomIn
+				a.preConcatenate(AffineTransform.getTranslateInstance(getWidth()/2.0,
+																						getHeight()/2.0));
 				g2.drawImage(img, a, applet);
+				paintScale(g);
 		  }
 		  plotFocus(g);
 	 }

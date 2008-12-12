@@ -12,18 +12,22 @@ package nl.jive.vri;
 import java.applet.Applet;
 import java.beans.*;
 import nl.jive.utils.*;
+import java.awt.*;
 
 class vriImgDisp extends vriGreyDisp {
 	 FFTArray dat;
 
 	 public vriImgDisp(Applet app) {
 		  super(app);
+		  setUnit("as");
 		  propChanges = new PropertyChangeSupport(this);
 		  message = new String("No current image");
 	 }
 
-	 public void load(String str) {
-		  System.out.println("ImgDisp: begin operation ---");
+	 public void loadAstroImage(AstroImage ai) {
+		  setFullScale(ai.scale);
+		  String str = ai.filename;
+		  System.out.println("ImgDisp: begin load "+str);
 		  loadImage(str);
 		  System.out.println("image loaded");
 		  try {
@@ -34,7 +38,8 @@ class vriImgDisp extends vriGreyDisp {
 				imsize = vriUtils.getImsize(imh, imw);
 				System.err.println("Imsize: "+imsize);
 				vriUtils.greyPix(pix, imh, imw);
-				dat = new FFTArray(imsize, vriUtils.pixToDat(pix, imh, imw, imsize));
+				dat = new FFTArray(imsize, 
+										 vriUtils.pixToDat(pix, imh, imw, imsize));
 				vriUtils.scaleDat(dat.data);
 				pix = vriUtils.datToPix(dat.data, dat.imsize);
 				pixToImg(pix, dat.imsize);
