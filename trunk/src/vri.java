@@ -56,7 +56,6 @@ import java.beans.*;
  * @author Derek J. McKay
  */
 public class vri extends JApplet
-	 implements ActionListener
 {
 	 public vriArrDisp arrDisp;
 	 public vriImgDisp imgDisp;
@@ -70,11 +69,10 @@ public class vri extends JApplet
 	 public vriAuxEdit auxEdit;
 	 public vriObsEdit obsEdit;
 	 public vriObservatory obs;
+	 public vriObservatoryManager obsman;
 	 public vriAuxiliary aux;
 	 public vriDisplayCtrl ArrCtrl;
-	 public vriDisplayCtrl UVcCtrl;
-	 public vriDisplayCtrl ImgCtrl;
-	 public vriDisplayCtrl UVpCtrl;
+	 public vriUVcZoomChooser UVcCtrl;
 
 	 public static void main(String args[]) {
 		  System.out.println("Standalone java program");
@@ -83,19 +81,10 @@ public class vri extends JApplet
 		  vri vriTest = new vri();
 		  vriTest.init();
 		  f.add("Center", vriTest);
-		  f.setSize(900, 900);
+		  f.setSize(900, 700);
 		  f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		  f.setVisible(true);
 	 }
-
-	 /**
-	  * Main routine to setup the screen
-	  *
-	  * @param (none)
-	  * @return void
-	  * @exception none
-	  * @author Derek J. McKay
-	  */
 
 	 JPanel captionDisp(String s, vriDisplay d) 
 	 {
@@ -114,9 +103,8 @@ public class vri extends JApplet
 
 		  setLayout(null);
 		  setBackground(Color.lightGray);
-
-		  obs = vriObservatory.select("MERLIN");
-
+		  obsman = new vriObservatoryManager();
+		  obs = obsman.select("MERLIN");
 		  aux = new vriAuxiliary();
 
 		  setLayout(new FlowLayout());
@@ -148,154 +136,169 @@ public class vri extends JApplet
 		  add(tabbedPane);
 
 		  JPanel allImgPanel = new JPanel();
-		  allImgPanel.setLayout(new GridLayout(2,3));
+		  GridBagLayout gbl = new GridBagLayout();
+		  GridBagConstraints gbc = new GridBagConstraints();
+		  allImgPanel.setLayout(gbl);
 
-		  Container ImgPanel = Box.createVerticalBox();
-		  imgDisp = new vriImgDisp(this);
-		  ImgCtrl = new vriDisplayCtrl("?", imgDisp);
-		  JPanel imgDispPanel = captionDisp("Source Image", imgDisp);
-		  ImgPanel.add(imgDispPanel);
-		  ImgPanel.add(ImgCtrl);
-		  allImgPanel.add(ImgPanel);
+		  // First Column
+		  gbc.gridx = 0;
+		  gbc.gridy = 0;
+		  allImgPanel.add(new JLabel("Source Image"), gbc);
 
-		  Container ArrPanel = Box.createVerticalBox();
-		  arrDisp = new vriArrDisp(this, obs, arrEdit);
-		  ArrCtrl = new vriDisplayCtrl("Station\nlock", arrDisp); 
-		  JPanel arrDispPanel = captionDisp("Array", arrDisp);
-		  ArrPanel.add(arrDispPanel);
-		  ArrPanel.add(ArrCtrl);
-		  allImgPanel.add(ArrPanel);
-
-		  Container ImgPanel2 = Box.createVerticalBox();
-		  imgDisp2 = new vriImgDisp(this);
-		  vriDisplayCtrl ImgCtrl2 = new vriDisplayCtrl("?", imgDisp2);
-		  JPanel imgDispPanel2 = captionDisp("Reconstructed Image", imgDisp2);
-		  ImgPanel2.add(imgDispPanel2);
-		  ImgPanel2.add(ImgCtrl2);
-		  allImgPanel.add(ImgPanel2);
+		  gbc.gridx = 0;
+		  gbc.gridy = 1;
+		  allImgPanel.add(imgDisp = new vriImgDisp(this), gbc);
 		  
-		  // Second row: UV equivalents of first row
+		  gbc.gridx = 0;
+		  gbc.gridy = 3;
+		  allImgPanel.add(new JLabel("UV source"), gbc);
 
-		  Container UVpPanel = Box.createVerticalBox();
-		  UVpDisp = new vriUVpDisp(this);
-		  JPanel uvpDispPanel = captionDisp("UV source", UVpDisp);
-		  UVpCtrl = new vriDisplayCtrl("?", UVpDisp); //   0, y4-w3*4, w3-1, w3*4-1, "?", UVpDisp);
-		  UVpPanel.add(uvpDispPanel);
-		  UVpPanel.add(UVpCtrl);
-		  allImgPanel.add(UVpPanel);
+		  gbc.gridx = 0;
+		  gbc.gridy = 4;
+		  allImgPanel.add(UVpDisp = new vriUVpDisp(this), gbc);
 
-		  Container UVcPanel = Box.createVerticalBox();
-		  UVcDisp = new vriUVcDisp(obs, aux);
-		  JPanel uvcDispPanel = captionDisp("Array UV coverage", UVcDisp);
-		  UVcCtrl = new vriDisplayCtrl("?", UVcDisp); 
-		  UVcPanel.add(uvcDispPanel);
-		  UVcPanel.add(UVcCtrl);
-		  allImgPanel.add(UVcPanel);
+		  // Second column
+		  gbc.gridx = 1;
+		  gbc.gridy = 0;
+		  allImgPanel.add(new JLabel("Array"));
+		  
+		  gbc.gridx = 1;
+		  gbc.gridy = 1;
+		  allImgPanel.add(arrDisp=new vriNSEWArrDisp(obs, arrEdit), gbc);
 
-		  Container UVpPanel2 = Box.createVerticalBox();
-		  UVpConvDisp = new vriUVpDisp(this);
-		  JPanel uvpDispPanel2 = captionDisp("UV detection", UVpConvDisp);
-		  vriDisplayCtrl UVpCtrl2 = new vriDisplayCtrl("?", UVpConvDisp); 
-		  UVpPanel2.add(uvpDispPanel2);
-		  UVpPanel2.add(UVpCtrl2);
-		  allImgPanel.add(UVpPanel2);
+		  gbc.gridx = 1;
+		  gbc.gridy = 2;
+		  allImgPanel.add(ArrCtrl=new vriDisplayCtrl(arrDisp), gbc);
+
+		  gbc.gridx = 1;
+		  gbc.gridy = 3;
+		  allImgPanel.add(new JLabel("Array UV Coverage"), gbc);
+
+		  gbc.gridx = 1;
+		  gbc.gridy = 4;
+		  allImgPanel.add(UVcDisp=new vriNSEWUVcDisp(obs, aux), gbc);
+
+		  gbc.gridx = 1;
+		  gbc.gridy = 5;
+		  allImgPanel.add(UVcCtrl=new vriUVcZoomChooser("?", UVcDisp), gbc);
+
+		  // Third column
+
+		  gbc.gridx = 2;
+		  gbc.gridy = 0;
+		  allImgPanel.add(new JLabel("Reconstructed Image"), gbc); 
+
+		  gbc.gridx = 2;
+		  gbc.gridy = 1;
+		  allImgPanel.add(imgDisp2 = new vriImgDisp(this), gbc);
+		  
+		  gbc.gridx = 2;
+		  gbc.gridy = 3;
+		  allImgPanel.add(new JLabel("UV Detection"), gbc);
+
+		  gbc.gridx = 2;
+		  gbc.gridy = 4;
+		  allImgPanel.add(UVpConvDisp=new vriUVpDisp(this), gbc);
+		  // End of gridbagging
 		  
 		  add(allImgPanel);
 
 		  imgDisp.addPropertyChangeListener(new PropertyChangeListener() {
 					 public void propertyChange(PropertyChangeEvent e) {
-						  UVpDisp.fft(imgDisp.dat);
-						  // FIXME: would be nicer to check UVp is set
-						  float uvcov[] = UVcDisp.uvCoverage(imgDisp.dat.imsize);
-						  UVpConvDisp.applyUVc(uvcov, UVpDisp.fft);
+						  if (e.getPropertyName()=="dat") {
+								System.err.println("** img disp dat changed");
+								FFTArray dat = (FFTArray) e.getNewValue();
+								UVpDisp.fft(dat);
+						  }
+					 }
+				});
+
+		  arrDisp.addPropertyChangeListener(UVcDisp); // handles active antenna
+
+		  arrDisp.addPropertyChangeListener(new PropertyChangeListener() {
+					 // FIXME: this is a hack because UVcDisp never actually fires
+					 public void propertyChange(PropertyChangeEvent e) {
+						  if (e.getPropertyName()=="active") {
+								System.err.println("** arrDisp changed - updating convolution too");
+								int size = UVpDisp.fft.imsize;
+								UVcDisp.uvCoverage(size);
+								SquareArray uvcov =  UVcDisp.getUVCoverage();
+								UVpConvDisp.applyUVc(uvcov, UVpDisp.fft);
+						  } 
 					 }
 				});
 		  
+
+		  UVpDisp.addPropertyChangeListener(new PropertyChangeListener() {
+					 public void propertyChange(PropertyChangeEvent e) {
+						  if (e.getPropertyName()=="fft") {
+								System.err.println("** UVp fft changed");
+								FFTArray fft = (FFTArray) e.getNewValue();
+								SquareArray uvcov = UVcDisp.getUVCoverage();
+								if (uvcov!=null) {
+									 UVpConvDisp.applyUVc(uvcov, fft);
+								} else {
+									 System.err.println("** Null uvcov");
+								}
+						  }
+					 }
+				});
+
 		  UVcDisp.addPropertyChangeListener(new PropertyChangeListener() {
 					 public void propertyChange(PropertyChangeEvent e) {
-						  float uvcov[] = UVcDisp.uvCoverage(imgDisp.dat.imsize);
-						  UVpConvDisp.applyUVc(uvcov, UVpDisp.fft);
+						  if (e.getPropertyName()=="uvcov") {
+								System.err.println("** UV coverage changed - updating convolution");
+								SquareArray uvcov =  UVcDisp.getUVCoverage();
+								UVpConvDisp.applyUVc(uvcov, UVpDisp.fft);
+						  }
+ 					 }
+				});
+
+		  UVcDisp.addPropertyChangeListener(new PropertyChangeListener() {
+					 public void propertyChange(PropertyChangeEvent e) {
+						  System.err.println("Hello!");
+						  System.err.println("** UVcDisp fired property change for "+
+													e.getPropertyName());
 					 }
 				});
 
 		  UVpConvDisp.addPropertyChangeListener(new PropertyChangeListener() {
 					 public void propertyChange(PropertyChangeEvent e) {
-						  imgDisp2.invfft(UVpConvDisp.fft);
+						  if (e.getPropertyName()=="fft") {
+								System.err.println("** UVpConvDisp fft changed");
+								FFTArray fft = (FFTArray) e.getNewValue();
+								imgDisp2.invfft(fft);
+						  }
 					 }
 				});
-
-		  arrDisp.addPropertyChangeListener(UVcDisp);
 
 		  // this initialization stuff should be 
 		  // pushed down to the actual objects
 
-		  vriObservatory o = obs.select("MERLIN");
+		  vriObservatory o = obsman.select("MERLIN");
 		  arrDisp.setObservatory(o);
 		  arrDisp.repaint();
 
  		  String c = obs.defaultConfig();
- 		  arrEdit.config.setSelectedItem(c);
+		  System.err.println("Default configuration: "+c);
+		  arrEdit.config.setSelectedItem(c);
 
 		  UVpEdit.init();
 		  setVisible(true);
 		  imgEdit.src_choice.setSelectedItem("Wide double");
-
-	 }
-	 
-	 // Obsolete event handler
-	 public void actionPerformed(ActionEvent e) {
-		  System.out.println("Got an event");
-		  // We need this to handle the events that affect things more globally
-		  JComponent source = (JComponent) e.getSource();
-		  if (source == obsEdit.el_field) {
-				Double d = new Double(obsEdit.el_field.getText());
-				obs.ant_el_limit = d.doubleValue() * Math.PI / 180.0;
-				obsEdit.site_choice.setSelectedItem("custom");
-				// auxEdit.setDecRange(); //FIXME
-				UVcDisp.repaint();
-		  } else if (source == obsEdit.dia_field) {
-				Double d = new Double(obsEdit.dia_field.getText());
-				obs.ant_diameter = d.doubleValue();
-				UVcDisp.repaint();
-				obsEdit.site_choice.setSelectedItem("custom");
-		  } else if (source == obsEdit.lat_field) {
-				Double d = new Double(obsEdit.lat_field.getText());
-				obs.latitude = d.doubleValue() * Math.PI / 180.0;
-				// auxEdit.setDecRange(); // FIXME
-				UVcDisp.repaint();
-		  } else if (source == obsEdit.ant_field) {
-				Integer n = Integer.valueOf(obsEdit.ant_field.getText());
-				obs.selectNumAnt(n.intValue());
-				obsEdit.site_choice.setSelectedItem("custom");
-				UVcDisp.repaint();
-				arrDisp.repaint();
-		  }
-	 }
-
-	 /**
-	  * A method to set the array configuration to "custom"
-	  *
-	  * @return void
-	  * @author Derek J. McKay
-	  */
-	 public void setCustomConfig() {
-		  arrEdit.config.setSelectedItem("custom");
 	 }
 }
 
 
 class vriDisplayCtrl extends JPanel {
 	 vriDisplay disp;
-	 public JButton function;
-	 public JButton zoomIn;
-	 public JButton zoomOut;
-	 public JButton zoomReset;
+	 JButton zoomIn;
+	 JButton zoomOut;
+	 JButton zoomReset;
 
-	 public vriDisplayCtrl(String s, vriDisplay d) {
+	 public vriDisplayCtrl(vriDisplay d) {
 		  disp = d;
-		  //setLayout(new GridLayout(0, 1));
-		  //add(new JLabel());
-		  add(new JLabel("Zoom", JLabel.CENTER));
+
 		  add(zoomIn = new JButton("In"));
 		  zoomIn.addActionListener(new ActionListener() {
 					 public void actionPerformed(ActionEvent ae) {
@@ -317,16 +320,54 @@ class vriDisplayCtrl extends JPanel {
 	 }
 }
 
+class vriUVcZoomChooser extends JPanel {
+	 vriUVcDisp disp;
+
+	 public vriUVcZoomChooser(String s, vriUVcDisp d) {
+		  disp = d;
+
+		  setLayout(new GridLayout(0, 1));
+		  String earthString = "Earth scale";
+		  String spaceString = "Space scale";
+		  JRadioButton earthButton = new JRadioButton(earthString);
+		  earthButton.setActionCommand(earthString);
+		  add(earthButton);
+		  JRadioButton spaceButton = new JRadioButton(spaceString);
+		  spaceButton.setActionCommand(spaceString);
+		  spaceButton.setSelected(true);
+		  add(spaceButton);
+
+		  ButtonGroup group = new ButtonGroup();
+		  group.add(earthButton);
+		  group.add(spaceButton);
+
+		  earthButton.addActionListener(new ActionListener() 
+				{
+					 public void actionPerformed(ActionEvent ae) {
+						  System.err.println("Earth button pressed");
+						  disp.setUseEarthScale(true);
+						  disp.repaint();
+					 }
+				});
+		  spaceButton.addActionListener(new ActionListener() 
+				{
+					 public void actionPerformed(ActionEvent ae) {
+						  System.err.println("Space button pressed");
+						  disp.setUseEarthScale(false);
+						  disp.repaint();
+					 }
+				});
+	 }
+}
 
 class vriArrEdit extends JPanel {
-	 public JComboBox config;
-	 public JButton stn_lock;
+	 JComboBox config;
+	 JButton stn_lock;
 	 vri parent;
 	 public vriArrEdit(vri p, vriObservatory obs) {
 		  parent = p;
 		  setLayout(new FlowLayout());
-
-		  setupConfigMenu(obs);
+		   setupConfigMenu(obs);
 	 }
 
 	 public void setupConfigMenu(final vriObservatory obs) {
@@ -348,7 +389,8 @@ class vriArrEdit extends JPanel {
 		  stn_lock.addActionListener(new ActionListener() {
 					 public void actionPerformed(ActionEvent e) {
 						  System.err.println("Station lock button pressed");
-						  parent.arrDisp.stationLock();
+						  parent.obs.stationLock();
+						  parent.arrDisp.repaint();
 					 }
 				});
 		  Graphics gc = getGraphics();
@@ -358,9 +400,12 @@ class vriArrEdit extends JPanel {
 
 
 class AstroImage {
+	 String name;
 	 String filename;
 	 double scale; // arc seconds
-	 AstroImage(String fn, double s) {
+
+	 AstroImage(String n, String fn, double s) {
+		  name = n;
 		  filename = fn;
 		  scale = s;
 	 }
@@ -379,38 +424,22 @@ class vriImgEdit extends JPanel {
 	 public vriImgEdit(final vri parent) {
 		  setLayout(new FlowLayout());
 
-		  add(src_label = new JLabel("Source:",Label.RIGHT));
-		  ArrayList<String> sd = new ArrayList<String>();
 		  final Map<String, AstroImage> imageMap = new HashMap<String, AstroImage>();
-		  // FIXME: There's a way of doing class-level initialisers;
-		  // should we use that instead?
-		  imageMap.put("Wide double", 
-							new AstroImage("wide_double.gif", 1.0));
-		  sd.add("Wide double");
-		  imageMap.put("Wide double smaller", 
-							new AstroImage("wide_double.gif", 0.2));
-		  sd.add("Wide double smaller");
-		  imageMap.put("Radio galaxy", 
-							new AstroImage("radio_galaxy.gif", 0.2));
-		  sd.add("Radio galaxy");
-// 		  imageMap.put("Narrow double", 
-// 							new AstroImage("narrow_double.gif", 100e-3));
-// 		  imageMap.put("Point",
-// 							new AstroImage("point.gif", 1e-3));
-// 		  imageMap.put("Offset point", 
-// 							new AstroImage("offset_point.gif", 10e-3));
-// 		  imageMap.put("Wide gaussian", 
-// 							new AstroImage("wide_gauss.gif", 10e-3));
-// 		  imageMap.put("Narrow gaussian", 
-// 							new AstroImage("narrow_gauss.gif", 10e-3));
-// 		  imageMap.put("Disc", 
-// 							new AstroImage("disc.gif", 10e-3));
-// 		  imageMap.put("Crux", 
-// 							new AstroImage("crux.gif", 10e-3));
+		   ArrayList<AstroImage> images = new ArrayList<AstroImage>();
+			String[] src_data;
 
-		  String[] src_data = new String[sd.size()];
-		  sd.toArray(src_data);
+		  images.add(new AstroImage("Wide double", "wide_double.gif", 1.0));
+		  images.add(new AstroImage("Wide double smaller", "wide_double.gif", 0.2));
+		  images.add(new AstroImage("Radio galaxy", "radio_galaxy.gif", 0.2));
 
+		  src_data = new String[images.size()];
+		  for (int i=0; i<images.size(); i++) {
+				AstroImage ai = images.get(i);
+				src_data[i] = ai.name;
+				imageMap.put(ai.name, ai);
+		  }
+
+		  add(src_label = new JLabel("Source:",Label.RIGHT));
 
 		  add(src_choice = new JComboBox(src_data));
 		  src_choice.addActionListener(new ActionListener() {
@@ -424,6 +453,8 @@ class vriImgEdit extends JPanel {
 						  parent.UVpDisp.setFullScale(ai.getUVScale());
 						  parent.UVpConvDisp.setFullScale(ai.getUVScale());
 						  parent.UVcDisp.setConvScale(ai.getUVScale());
+						  // FIXME: this should *definitely* be somewhere else!
+						  parent.UVcDisp.uvCoverage(parent.UVpDisp.fft.imsize);
 					 }
 				});
 	 }
@@ -513,8 +544,6 @@ implements ActionListener {
 		  bw_field.setEditable(false);
 	 }
 
-
-
 	 public void actionPerformed(ActionEvent e) {
 		  Double d = new Double(fr_field.getText());
 		  aux.freq = d.doubleValue();
@@ -534,12 +563,12 @@ class vriObsEdit extends JPanel {
 		  parent = p;
 		  setLayout(new FlowLayout(FlowLayout.LEFT));
 
-		  add(new JLabel("Obs:",Label.RIGHT));
 		  String[] site_choice_data = {"MERLIN",
 												 "ATCA",
 												 "WSRT",
 												 "New ATCA",
 												 "custom"};
+		  add(new JLabel("Obs:",Label.RIGHT));
 
 		  add(site_choice = new JComboBox(site_choice_data));
 		  site_choice.setSelectedItem("MERLIN");
@@ -547,16 +576,14 @@ class vriObsEdit extends JPanel {
 		  site_choice.addActionListener(new ActionListener() {
 					 public void actionPerformed(ActionEvent e) {
 						  String s = site_choice.getSelectedItem().toString();
-						  parent.obs = vriObservatory.select(s);
+						  parent.obs = parent.obsman.select(s);
 						  parent.arrEdit.setupConfigMenu(parent.obs);
 						  String c = parent.obs.defaultConfig();
 						  parent.arrEdit.config.setSelectedItem(c);
 						  parent.arrDisp.setObservatory(parent.obs);
-						  parent.arrDisp.repaint();
 						  parent.UVcDisp.setObservatory(parent.obs);
-						  parent.UVcDisp.repaint();
 						  parent.auxEdit.had.setDecRange();
-						  parent.obsEdit.setFields(parent.obs);
+						  setFields(parent.obs);
 					 }
 				});
 
@@ -574,10 +601,10 @@ class vriObsEdit extends JPanel {
 	 }
 
 	 public void setFields(vriObservatory obs) {
-		  lat_field.setText(String.format("%.3f", parent.obs.latitude * 180.0 / Math.PI));
+		  lat_field.setText(String.format("%.3f", Math.toDegrees(parent.obs.latitude)));
 		  ant_field.setText(String.format("%d", parent.obs.antennas.length));
 		  dia_field.setText(String.format("%.3f", parent.obs.ant_diameter));
-		  el_field.setText(String.format("%.3f", parent.obs.ant_el_limit * 180.0 / Math.PI));
+		  el_field.setText(String.format("%.3f", Math.toDegrees(parent.obs.ant_el_limit)));
 	 }
 }
 

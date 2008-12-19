@@ -38,9 +38,35 @@ class FFTArray {
 		  imsize = i;
 		  data = d;
 	 }
+
+	 public void set(int i, int j, float real, float im) {
+		  data[j*imsize*2 + i*2] = real;
+		  data[j*imsize*2 + i*2 + 1] = im;
+	 }
+}
+
+class SquareArray {
+	 int size;
+	 float data[];
+
+	 public SquareArray(int i) {
+		  size = i;
+		  data = new float[size*size];
+	 }
+
+	 public SquareArray(int i, float[] d) {
+		  size = i;
+		  data = d;
+	 }
+	 public void set(int i, int j, float val) {
+		  data[j*size+i] = val;
+	 }
+
+	 public float get(int i, int j) {
+		  return data[j*size+i];
+	 }
 	 // y1*imsize*2 + x1*2 = real
 	 // y1*imsize*2 + x1*2 + 1 = imag
-
 }
 
 class vriUtils {
