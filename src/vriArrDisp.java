@@ -8,37 +8,29 @@ import java.awt.*;
 import java.awt.image.*;
 import java.awt.event.*;
 import java.awt.geom.*;
-import java.applet.Applet;
+//import java.applet.Applet;
 import javax.swing.*;
 import javax.swing.event.*;
 import java.net.*;
 
 import nl.jive.earth.*;
+import nl.jive.earth.Component;
+import nl.jive.earth.Point2D;
 
-class vriArrDisp extends vriDisplay {
-	 Color bg;      // Background "grass" colour - could be obs. dependent :-)
-	 Applet applet;     // Applet identity (for image loading)
-	 Image image;       // Image of antenna for ArrDisp
-	 // We need this because the antenna is plotted wrt
-	 // the top-left (not centre) of the image
+abstract class vriArrDisp extends vriDisplay {
+	 // Applet applet;     // Applet identity (for image loading)
 	 vriObservatory obs;  // Observatory being used
-	 vriLocation pick;    // Antenna selected by the mouse
 	 vriArrEdit edit;    // Edit panel associated with this instance
-	 AffineTransform trans;
+	 Image image;       // Image of antenna for ArrDisp
 
-	 public vriArrDisp(Applet app, vriObservatory o,
-							 vriArrEdit e) {
+	 vriArrDisp(vriObservatory o, vriArrEdit e) {
 		  super();
-		  propChanges = new PropertyChangeSupport(this);
-		  applet = app;
 		  obs = o;
 		  edit = e;
+		  
+	 }
 
-		  Graphics2D g2 = (Graphics2D) getGraphics();
-
-		  setObservatory(obs);
-		  bg = new Color(174,255,81);
-
+	 void loadImage() {
 		  // Now load in the antenna images/icons for display on the site map
 		  // Note that we wait for them to finish loading before proceding
 		  try {
@@ -47,66 +39,73 @@ class vriArrDisp extends vriDisplay {
 		  } catch (Exception exc) {
 				System.err.println("Error with antenna icon load");
 		  }
+	 }		  
 
+	 void setImage(Image i) {
+		  image = i;
+	 }
+
+	 abstract void setObservatory(vriObservatory aobs);
+
+	 abstract void paintBackground(Graphics g);
+
+	 abstract void paintAntennas(Graphics g);
+
+	 abstract void paintScale(Graphics g);
+
+}
+
+class vriNSEWArrDisp extends vriArrDisp 
+{
+	 vriLocation pick;    // Antenna selected by the mouse
+	 AffineTransform trans;
+	 private Color bg;      // Background "grass" colour - could be obs. dependent :-)
+
+	 vriNSEWArrDisp(vriObservatory o, vriArrEdit e) {
+		  super(o, e);
+		  propChanges = new PropertyChangeSupport(this);
+		  setObservatory(obs);
+		  bg = new Color(174, 255, 81);
+		  loadImage();
 		  addMouseListener(new Mousey());
 		  addMouseMotionListener(new MoveyMousey());
 		  repaint();
 	 }
 
-	 public void setObservatory(vriObservatory aobs) {
+	 void setObservatory(vriObservatory aobs) {
 		  obs = aobs;
 		  Dimension d = getSize();
 		  int w = d.width;
 		  int h = d.height;
-
+		  if (aff==null) {
+				System.err.println("Null affine transform");
+		  }
+		  if (obs.ref==null) {
+				System.err.println("Null obs.ref");				
+				System.err.println("Latitude: "+obs.latitude);				
+		  }
 		  aff.translate((int)obs.ref.EW, (int)obs.ref.NS);
 		  defaultTransform = (AffineTransform) aff.clone();
-	 }
-
-	 public void stationLock() {
-		  int s = 0;
-		  double dist;
-
-		  for (int i = 0; i < obs.antennas.length; i++) {
-				vriLocation a = obs.antennas[i];
-				double bestdist = Double.MAX_VALUE;
-				for (int j = 0; j < obs.stations.length; j++) {
-					 vriLocation station = obs.stations[j];
-					 dist = (Math.pow((a.NS - station.NS), 2.0) + 
-								Math.pow((a.EW - station.EW), 2.0));
-					 if (dist < bestdist) {
-						  s = j;
-						  bestdist = dist;
-					 }
-				}
-				obs.antennas[i].NS = obs.stations[s].NS;
-				obs.antennas[i].EW = obs.stations[s].EW;
-		  }
 		  repaint();
 	 }
 
-	 public void update(Graphics g) {
-		  paint(g);
-	 }
-
-		  
-	 private ArrayList<Contour2D> processComponents(ArrayList<nl.jive.earth.Component> components) 
+	 ArrayList<Contour2D> processComponents(ArrayList<Component> components) 
 	 {
 		  ArrayList<Contour2D> contours2D = new ArrayList<Contour2D>();
-		  for (nl.jive.earth.Component comp : components) {
+		  for (Component comp : components) {
 				contours2D.addAll(comp.rotateAndProject(Math.toDegrees(-obs.longitude),
 																	 Math.toDegrees(-obs.latitude)));
 		  }
 		  return contours2D;
 	 }
 
-	 private static Polygon pointsToPolygon(LinkedList<nl.jive.earth.Point2D> pts, 
+	 static Polygon pointsToPolygon(LinkedList<Point2D> pts, 
 														 AffineTransform t) {
 		  double r_earth = 6378137.0;
 		  int[] xs = new int[pts.size()];
 		  int[] ys = new int[pts.size()];
 		  int i=0;
-		  for (nl.jive.earth.Point2D p : pts) {
+		  for (Point2D p : pts) {
 				Point p1 = new Point((int)(r_earth*p.x), 
 											(int)(r_earth*p.y));
 				Point p2 = new Point();
@@ -119,7 +118,7 @@ class vriArrDisp extends vriDisplay {
 		  return poly;
 	 }
 
-	 private void paintBackground(Graphics g) {
+	 void paintBackground(Graphics g) {
 		  Graphics2D g2 = (Graphics2D) g;
 		  Rectangle r = getBounds();
 		  double displayScale = getDisplayScale();
@@ -133,7 +132,7 @@ class vriArrDisp extends vriDisplay {
 
 				for (Contour2D cont : contours2D) {
 					 if (cont.isClosed()) {
-						  LinkedList<nl.jive.earth.Point2D> pts = cont.getPoints();
+						  LinkedList<Point2D> pts = cont.getPoints();
 						  Polygon poly = pointsToPolygon(pts, trans);
 						  Rectangle rec = poly.getBounds();
 						  // System.err.println(String.format("*** x %d y %d width %d height %d",
@@ -152,7 +151,7 @@ class vriArrDisp extends vriDisplay {
 		  plotFocus(g);
 	 }
 		  
-	 private void paintRef(Graphics g) {
+	 void paintRef(Graphics g) {
 		  Graphics2D g2 = (Graphics2D)g;
 		  g.setColor(Color.black);
 		  // Plot observatory centre
@@ -164,13 +163,18 @@ class vriArrDisp extends vriDisplay {
 
 	 }
 	 
-	 private void paintScale(Graphics g) {
+	 void paintScale(Graphics g) {
 		  // Draw a scale
 		  Rectangle r = getBounds();
-		  double displayScale = trans.getScaleX()*aff.getScaleX();
+		  double displayScale = trans.getScaleX();
+		  System.err.println("** Affscale: "+aff.getScaleX());
 		  int viewWidth = getWidth();
-		  double l = roundPower((viewWidth - 20.0) / displayScale);
-		  int m = (int) Math.round(l * displayScale);
+		  double l = roundPower((viewWidth - 20.0) / displayScale); 
+		  int m = (int) Math.round(l * displayScale); //
+		  System.err.println("** m: "+m+" l: "+l);
+		  double a = aff.getScaleX();
+		  System.err.println("** Ratio: "+m/l/a);
+
 		  g.drawLine(10, r.height-10, 10+m, r.height-10);
 		  String s = new String();
 		  if (l >= 1000.0) {
@@ -181,7 +185,7 @@ class vriArrDisp extends vriDisplay {
 		  g.drawString(s, 10, r.height-12);
 	 }
 
-	 private void paintStations(Graphics g) {
+	 void paintStations(Graphics g) {
 		  // Recall: Stations are configuration specific 
  		  // pre-allocated positions for antennas.
 		  // Not to be confused with antennas themselves.
@@ -195,14 +199,11 @@ class vriArrDisp extends vriDisplay {
 				Point p1 = new Point((int)station.EW, (int)station.NS);
 				Point p2 = new Point();
 				trans.transform(p1, p2);
-				//	System.err.println(String.format("Station EW: %f NS: %f", 
-				//												station.EW, station.NS));
-				// System.err.println(String.format("transforms to (%d, %d)", p2.x, p2.y));
 				g2.drawOval(p2.x-2, p2.y-2, 4, 4);
 		  }
 	 }
 
-	 private void paintTracks(Graphics g) {
+	 void paintTracks(Graphics g) {
 		  Graphics2D g2 = (Graphics2D) g;
 		  g.setColor(Color.black);
 		  for (int j = 0; j < obs.trk.length; j++) {
@@ -218,7 +219,7 @@ class vriArrDisp extends vriDisplay {
 		  }
 	 }
 
-	 private void paintAntennas(Graphics g) {
+	 void paintAntennas(Graphics g) {
 		  // Calculate antenna image sizes
 		  // use one image; all antennas look the same.
 		  Graphics2D g2 = (Graphics2D) g;
@@ -239,14 +240,13 @@ class vriArrDisp extends vriDisplay {
 	 }
 
 	 public void paint(Graphics g) {
-		  System.err.println("Obs scale: " + obs.getLengthScale());
 		  // double geoScale = getWidth()/4.0e5;  // 500000.0
 		  // double geoScale = getWidth()/5.0e5;  // 500000.0
 		  double geoScale = getWidth()/obs.getLengthScale();
 
 		  AffineTransform geoTrans = AffineTransform.getScaleInstance(geoScale, -geoScale);
 		  trans = (AffineTransform)geoTrans.clone();
-		  // probably guaranteed to be (0,0):
+		  // obs.ref is guaranteed to be (0,0), but still:
 		  trans.concatenate(AffineTransform.getTranslateInstance(-obs.ref.EW, -obs.ref.NS)); 
 		  trans.preConcatenate(aff);
 
@@ -329,3 +329,28 @@ class vriArrDisp extends vriDisplay {
 		  }
 	 }
 }
+
+class vriLatLonArrDisp extends vriArrDisp 
+{
+
+	 vriLatLonArrDisp(vriObservatory o, vriArrEdit e) {
+		  super(o, e);
+	 }
+
+	 void setObservatory(vriObservatory aobs) {
+		  obs = aobs;
+	 }
+
+	 void paintBackground(Graphics g) {
+	 }
+
+	 void paintAntennas(Graphics g) {
+	 }
+
+	 void paintScale(Graphics g) {
+	 }
+
+	 public void paint(Graphics g) {
+	 }
+
+}	 

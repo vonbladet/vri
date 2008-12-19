@@ -41,7 +41,7 @@ class vriUVpDisp extends vriGreyDisp {
 	 }
 
 	 // sets fft if this is the convolved class
-	 public void applyUVc(float[] cov, FFTArray fft0) {
+	 public void applyUVc(SquareArray cov, FFTArray fft0) {
 		  // Applies the UV coverage (from the UVcDisp class) to the FFT
 		  // (the fft[] array).
 
@@ -52,7 +52,7 @@ class vriUVpDisp extends vriGreyDisp {
 		  message = new String("Applying UV coverage...");
 		  repaint();
 
-		  float a[] = vriUtils.applyUVc(cov, fft0.data, fft0.imsize);
+		  float a[] = vriUtils.applyUVc(cov.data, fft0.data, fft0.imsize);
 		  fft = new FFTArray(fft0.imsize, a);
 
 		  fftToImg(fft);

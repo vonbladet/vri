@@ -31,7 +31,6 @@ class vriImgDisp extends vriGreyDisp {
 		  loadImage(str);
 		  System.out.println("image loaded");
 		  try {
-				
 				int pix[] = imgToPix(img);
 				int imh = img.getHeight(this);
 				int imw = img.getWidth(this);
@@ -46,7 +45,6 @@ class vriImgDisp extends vriGreyDisp {
 				System.out.println("ImgDisp: end operation ----");
 				message = null;
 				repaint();
-				System.err.println("** firing property change");
 				propChanges.firePropertyChange("dat", null, dat);
 		  } catch (EmptyImageException e) {
 				System.err.println("ImgDisp: Empty image");

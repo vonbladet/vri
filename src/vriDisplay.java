@@ -37,8 +37,8 @@ class vriDisplay extends JComponent
 
 	 public Dimension getPreferredSize() {
 		  int width, height;
-		  width = 200;
-		  height = 200;
+		  width = 128;
+		  height = 128;
 		  return new Dimension(width, height);
 	 }
 
