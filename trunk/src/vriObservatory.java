@@ -17,33 +17,47 @@ abstract class vriObservatory
 {
 	 String menu_name;      // Name in observatory pop-up menu
 	 String full_name;      // Proper name of obs.
-	 double ant_diameter;
-	 double ant_el_limit;
-	 vriLocation[] antennas;      
-	 vriLocation[] stations; 
 	 double lengthScale;    // of observatory, in m
 	 double latitude;
 	 double longitude;
+	 double ant_diameter;
+	 double ant_el_limit;
 	 String[] cfg_name;
-	 vriTrack[] trk; 
-	 vriLocation ref;
-	 vriConfig[] cfg;       // Set of "standard array configurations"
-	 int[][] cfg_stations;  // Array of station numbers of configs
+
+	 ArrayList<Component> components;
 
 	 abstract Baseline[] getBaselines();
-	 abstract double getLengthScale();
+	 double getLengthScale() {
+		  return lengthScale;
+	 }
+
 	 abstract String defaultConfig();
 	 abstract boolean setConfig(String cfg_str);  // BOOlean?!
 	 abstract void selectNumAnt(int i);
 	 abstract void stationLock();
-	 ArrayList<Component> components;
+	 abstract vriArrDisp getArrDisp(vriArrEdit ae);
+	 abstract vriUVcDisp getUVcDisp(vriAuxiliary aux);
 }
 
 class vriSmallObservatory extends vriObservatory {
-	 ArrayList<Component> components;
 	 private static PropertyChangeSupport propChanges;
+
+	 vriLocation[] stations; 
+	 vriTrack[] trk; 
+	 vriLocation ref;
+	 vriConfig[] cfg;       // Set of "standard array configurations"
+	 int[][] cfg_stations;  // Array of station numbers of configs
+	 vriLocation[] antennas;      
 		  
 	 vriSmallObservatory() {
+	 }
+
+	 vriArrDisp getArrDisp(vriArrEdit ae) {
+		  return new vriNSEWArrDisp(this, ae);
+	 }
+
+	 vriUVcDisp getUVcDisp(vriAuxiliary a) {
+		  return new vriNSEWUVcDisp(this, a);
 	 }
 
 	 Baseline[] getBaselines() {
@@ -62,10 +76,6 @@ class vriSmallObservatory extends vriObservatory {
 		  return baselines;
 	 }
 	 
-	 double getLengthScale() {
-		  return lengthScale;
-	 }
-
 	 void makeAntennas(int num_antennas) {
 		  antennas = new vriLocation[num_antennas];
 		  for (int i = 0; i < antennas.length; i++) 
@@ -148,6 +158,56 @@ class vriSmallObservatory extends vriObservatory {
 
 }
 
+class vriBigObservatory extends vriObservatory {
+	 
+	 TelescopeList antennas;
+
+	 vriBigObservatory() {
+
+	 }
+
+	 vriArrDisp getArrDisp(vriArrEdit ae) {
+		  return new vriLatLonArrDisp(this, ae);
+	 }
+
+	 vriUVcDisp getUVcDisp(vriAuxiliary aux) {
+		  return new vriLatLonUVcDisp(this, aux);
+	 }
+
+
+	 Baseline[] getBaselines() {
+		  int n = antennas.size();
+		  Baseline[] baselines = new LatLonBaseline[n*(n-1)/2];
+
+		  int count = 0;
+		  for(int i = 0; i < (antennas.size()-1); i++) {
+				LatLon ant1 = antennas.get(i).position;
+				for(int j = i+1; j < (antennas.size()); j++) {
+					 LatLon ant2 = antennas.get(j).position;
+					 baselines[count] = new LatLonBaseline(ant1, ant2);
+					 count++;
+				}
+		  }
+		  return baselines;
+	 }
+	 
+	 String defaultConfig() {
+		  return "Default";
+	 }
+
+	 boolean setConfig(String cfg_str) {
+		  return true;
+	 }
+
+	 void selectNumAnt(int i) {
+	 }
+
+	 void stationLock() {
+
+	 }
+}
+
+
 class vriObservatoryManager {
 	 NationReader nr;
 	 HashMap<String, vriObservatory> observatories;
@@ -162,6 +222,11 @@ class vriObservatoryManager {
 				;
 		  } catch (java.io.IOException e) {
 				;
+		  }
+		  if (nr == null) {
+				System.err.println("Geometries not loaded");
+		  } else {
+				System.err.println("Geometries loaded");
 		  }
 		  double[] cs, cu;
 		  int[] csi;
@@ -181,6 +246,7 @@ class vriObservatoryManager {
 		  try {
 				atca.components = nr.getNation("Australia").getComponents();
 		  } catch (NameNotFoundException e) {
+				System.err.println("Australia not found");
 				atca.components = null;
 		  }
 
@@ -391,12 +457,12 @@ class vriObservatoryManager {
 		  merlin.ant_diameter = 25.0;
 		  merlin.ant_el_limit = 0.0 * Math.PI / 180.0;
 		  merlin.ref = new vriLocation();
-		  System.err.println(((vriObservatory)merlin).ref==null);
-		  // try {
-		  // merlin.components = nr.getNation("United Kingdom").getComponents();
-		  //} catch (NameNotFoundException e) {
-		  //merlin.components = null;
-		  //}
+// 		  try {
+// 				merlin.components = nr.getNation("United Kingdom").getComponents();
+// 		  } catch (NameNotFoundException e) {
+// 				System.err.println("UK not found");
+// 				merlin.components = null;
+// 		  }
 		  Set<String> nations = nr.getNationNamesInRegion("Europe");
 		  System.err.println("# nations: "+nations.size());
 		  nations.remove("Russia");
@@ -439,7 +505,24 @@ class vriObservatoryManager {
 		  observatories.put(merlin.menu_name, merlin);
 		  // End MERLIN
 
-
+		  vriBigObservatory evn = new vriBigObservatory();
+		  TelescopeReader tr = new TelescopeReader("evn.json");
+		  TelescopeList tl = tr.getTelescopes();
+		  
+		  evn.antennas = tl;
+		  evn.menu_name = "EVN";
+		  evn.full_name = "EVN";
+		  Set<String> evn_nations = nr.getNationNamesInRegion("Europe");
+		  evn_nations.remove("Russia");
+		  evn.components = nr.getSelectedNations(evn_nations);
+		  evn.lengthScale = 5e6;
+		  // FIXME
+		  evn.latitude = Math.toRadians(50);
+		  evn.longitude = Math.toRadians(10);
+		  String[] cfg_name = new String[]{"default"};
+		  
+		  observatories.put(evn.menu_name, evn);
+		  
 		  // Kn and Da are mostly used in combination with the MkII at Jodrell
 		  // shanghai, atca, mopra, hobart, kashima, tigo, westford, 
 		  // arecibo and metsahovi
@@ -451,7 +534,7 @@ class vriObservatoryManager {
 		  // Metsähovi
 		  // Also, Jodrell and Cambridge, with Kn as a possible extra if we feel Merlincasty
 	 }
-
+	 
 	 vriObservatory select(String selection) {
 		  // When a selection is made from the observatory pop-up menu,
 		  // this method is called to load the values (from file or otherwise)
@@ -460,4 +543,5 @@ class vriObservatoryManager {
 		  vriObservatory obs = observatories.get(selection);
 		  return obs;
 	 }
+	 
 }
