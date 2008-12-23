@@ -18,16 +18,18 @@ import nl.jive.earth.Component;
 import nl.jive.earth.Point2D;
 
 abstract class vriArrDisp extends vriDisplay {
-	 // Applet applet;     // Applet identity (for image loading)
+	 AffineTransform trans;
 	 vriObservatory obs;  // Observatory being used
 	 vriArrEdit edit;    // Edit panel associated with this instance
 	 Image image;       // Image of antenna for ArrDisp
+	 Color bg = new Color(174, 255, 81);
 
 	 vriArrDisp(vriObservatory o, vriArrEdit e) {
 		  super();
-		  obs = o;
+		  setObservatory(o);
+		  loadImage();
 		  edit = e;
-		  
+		  propChanges = new PropertyChangeSupport(this);
 	 }
 
 	 void loadImage() {
@@ -45,35 +47,70 @@ abstract class vriArrDisp extends vriDisplay {
 		  image = i;
 	 }
 
-	 abstract void setObservatory(vriObservatory aobs);
+	 static Polygon pointsToPolygon(LinkedList<Point2D> pts, 
+											  AffineTransform t) {
+		  double r_earth = 6378137.0;
+		  int[] xs = new int[pts.size()];
+		  int[] ys = new int[pts.size()];
+		  int i=0;
+		  for (Point2D p : pts) {
+				Point p1 = new Point((int)(r_earth*p.x), 
+											(int)(r_earth*p.y));
+				Point p2 = new Point();
+				t.transform(p1, p2);
+				xs[i] = p2.x;
+				ys[i] = p2.y;
+				i++;
+		  }
+		  Polygon poly = new Polygon(xs, ys, pts.size());
+		  return poly;
+	 }
+
 
 	 abstract void paintBackground(Graphics g);
 
 	 abstract void paintAntennas(Graphics g);
 
-	 abstract void paintScale(Graphics g);
+	 void paintScale(Graphics g) {
+		  // Draw a scale
+		  Rectangle r = getBounds();
+		  double displayScale = trans.getScaleX();
+		  System.err.println("** Affscale: "+aff.getScaleX());
+		  int viewWidth = getWidth();
+		  double l = roundPower((viewWidth - 20.0) / displayScale); 
+		  int m = (int) Math.round(l * displayScale); //
+		  System.err.println("** m: "+m+" l: "+l);
+		  double a = aff.getScaleX();
+		  System.err.println("** Ratio: "+m/l/a);
 
+		  g.drawLine(10, r.height-10, 10+m, r.height-10);
+		  String s = new String();
+		  if (l >= 1000.0) {
+				s = Double.toString(l/1000.0) + "km";
+		  } else {
+				s = Double.toString(l) + "m";
+		  }
+		  g.drawString(s, 10, r.height-12);
+	 }
+
+	 abstract void setObservatory(vriObservatory o);
+	 
 }
 
 class vriNSEWArrDisp extends vriArrDisp 
 {
+	 vriSmallObservatory obs;  // Observatory being used
 	 vriLocation pick;    // Antenna selected by the mouse
-	 AffineTransform trans;
-	 private Color bg;      // Background "grass" colour - could be obs. dependent :-)
 
 	 vriNSEWArrDisp(vriObservatory o, vriArrEdit e) {
 		  super(o, e);
-		  propChanges = new PropertyChangeSupport(this);
-		  setObservatory(obs);
-		  bg = new Color(174, 255, 81);
-		  loadImage();
 		  addMouseListener(new Mousey());
 		  addMouseMotionListener(new MoveyMousey());
 		  repaint();
 	 }
 
 	 void setObservatory(vriObservatory aobs) {
-		  obs = aobs;
+		  obs = (vriSmallObservatory) aobs;
 		  Dimension d = getSize();
 		  int w = d.width;
 		  int h = d.height;
@@ -99,24 +136,6 @@ class vriNSEWArrDisp extends vriArrDisp
 		  return contours2D;
 	 }
 
-	 static Polygon pointsToPolygon(LinkedList<Point2D> pts, 
-														 AffineTransform t) {
-		  double r_earth = 6378137.0;
-		  int[] xs = new int[pts.size()];
-		  int[] ys = new int[pts.size()];
-		  int i=0;
-		  for (Point2D p : pts) {
-				Point p1 = new Point((int)(r_earth*p.x), 
-											(int)(r_earth*p.y));
-				Point p2 = new Point();
-				t.transform(p1, p2);
-				xs[i] = p2.x;
-				ys[i] = p2.y;
-				i++;
-		  }
-		  Polygon poly = new Polygon(xs, ys, pts.size());
-		  return poly;
-	 }
 
 	 void paintBackground(Graphics g) {
 		  Graphics2D g2 = (Graphics2D) g;
@@ -145,6 +164,7 @@ class vriNSEWArrDisp extends vriArrDisp
 				}
 				g2.setTransform(cache);
 		  } else {
+				System.err.println("No geography");
 				g2.setColor(bg);
 				g2.fillRect(0, 0, r.width-1, r.height-1);
 		  }
@@ -163,28 +183,6 @@ class vriNSEWArrDisp extends vriArrDisp
 
 	 }
 	 
-	 void paintScale(Graphics g) {
-		  // Draw a scale
-		  Rectangle r = getBounds();
-		  double displayScale = trans.getScaleX();
-		  System.err.println("** Affscale: "+aff.getScaleX());
-		  int viewWidth = getWidth();
-		  double l = roundPower((viewWidth - 20.0) / displayScale); 
-		  int m = (int) Math.round(l * displayScale); //
-		  System.err.println("** m: "+m+" l: "+l);
-		  double a = aff.getScaleX();
-		  System.err.println("** Ratio: "+m/l/a);
-
-		  g.drawLine(10, r.height-10, 10+m, r.height-10);
-		  String s = new String();
-		  if (l >= 1000.0) {
-				s = Double.toString(l/1000.0) + "km";
-		  } else {
-				s = Double.toString(l) + "m";
-		  }
-		  g.drawString(s, 10, r.height-12);
-	 }
-
 	 void paintStations(Graphics g) {
 		  // Recall: Stations are configuration specific 
  		  // pre-allocated positions for antennas.
@@ -240,10 +238,7 @@ class vriNSEWArrDisp extends vriArrDisp
 	 }
 
 	 public void paint(Graphics g) {
-		  // double geoScale = getWidth()/4.0e5;  // 500000.0
-		  // double geoScale = getWidth()/5.0e5;  // 500000.0
 		  double geoScale = getWidth()/obs.getLengthScale();
-
 		  AffineTransform geoTrans = AffineTransform.getScaleInstance(geoScale, -geoScale);
 		  trans = (AffineTransform)geoTrans.clone();
 		  // obs.ref is guaranteed to be (0,0), but still:
@@ -332,25 +327,94 @@ class vriNSEWArrDisp extends vriArrDisp
 
 class vriLatLonArrDisp extends vriArrDisp 
 {
+	 vriBigObservatory obs;
 
 	 vriLatLonArrDisp(vriObservatory o, vriArrEdit e) {
 		  super(o, e);
 	 }
 
 	 void setObservatory(vriObservatory aobs) {
-		  obs = aobs;
+		  obs = (vriBigObservatory) aobs;
+	 }
+
+	 ArrayList<Contour2D> processComponents(ArrayList<Component> components) 
+	 {
+		  ArrayList<Contour2D> contours2D = new ArrayList<Contour2D>();
+		  for (Component comp : components) {
+				contours2D.addAll(comp.rotateAndProject(Math.toDegrees(-obs.longitude),
+																	 Math.toDegrees(-obs.latitude)));
+		  }
+		  return contours2D;
 	 }
 
 	 void paintBackground(Graphics g) {
+		  Graphics2D g2 = (Graphics2D) g;
+		  Rectangle r = getBounds();
+		  double displayScale = getDisplayScale();
+		  if (obs.components != null) {
+				g2.setColor(Color.blue);
+				g2.fillRect(0, 0, r.width-1, r.height-1);
+				g2.setColor(bg);
+				AffineTransform cache = g2.getTransform();
+				g2.translate(getWidth()/2, getHeight()/2);
+				ArrayList<Contour2D> contours2D = processComponents(obs.components);
+
+				for (Contour2D cont : contours2D) {
+					 if (cont.isClosed()) {
+						  LinkedList<Point2D> pts = cont.getPoints();
+						  Polygon poly = pointsToPolygon(pts, trans);
+						  Rectangle rec = poly.getBounds();
+						  g2.fill(poly);
+					 } else {
+						  System.err.println("*** Unclosed contour, skipping");
+					 }
+				}
+				g2.setTransform(cache);
+		  } else {
+				System.err.println("No geography");
+				g2.setColor(bg);
+				g2.fillRect(0, 0, r.width-1, r.height-1);
+		  }
+		  plotFocus(g);
 	 }
 
 	 void paintAntennas(Graphics g) {
-	 }
+		  double r_earth = 6378137.0;
+		  Graphics2D g2 = (Graphics2D) g;
+		  AffineTransform cache = g2.getTransform();
+		  g2.translate(getWidth()/2, getHeight()/2);
 
-	 void paintScale(Graphics g) {
+		  ArrayList<ProjectedTelescope> ptl = 
+				obs.antennas.rotateAndProject(Math.toDegrees(-obs.longitude), 
+														Math.toDegrees(-obs.latitude));
+		  int imgw = image.getWidth(this);
+		  int imgh = image.getHeight(this);
+		  for (ProjectedTelescope pt : ptl) {
+				Point2D p = pt.projection;
+				System.err.println(String.format("Antenna at (%f, %f)", p.x, p.y));
+				Point p1 = new Point((int)(r_earth*p.x), (int)(r_earth*p.y));
+				Point p2 = new Point();
+				trans.transform(p1, p2);
+
+				// System.err.println(String.format("Transformed antenna at (%d, %d)", 
+				// 											p2.x-imgw/2, p2.y-imgh/2));
+				g2.drawImage(image, p2.x-imgw/2, p2.y-imgh/2, this);
+
+		  }
+		  g2.setTransform(cache);
 	 }
 
 	 public void paint(Graphics g) {
+		  double geoScale = getWidth()/obs.getLengthScale();
+		  AffineTransform geoTrans = AffineTransform.getScaleInstance(geoScale, -geoScale);
+		  trans = (AffineTransform)geoTrans.clone();
+		  trans.preConcatenate(aff);
+
+		  Graphics2D g2 = (Graphics2D) g;	 
+		  paintBackground(g);
+		  paintAntennas(g);
+		  paintScale(g);
+
 	 }
 
 }	 

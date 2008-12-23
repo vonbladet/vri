@@ -132,12 +132,8 @@ implements PropertyChangeListener
 		  if (!nonzero) {
 				System.err.println("uvcov is zero");
 		  }
+		  System.err.println("UV coverage change firing");
 		  propChanges.firePropertyChange("uvcov", null, uvcov);
-		  if (uvcov==null) {
-				System.err.println("uvcov still null");
-		  } else {
-				System.err.println("** UV coverage changed!");
-		  }
 	 }  // uvCoverage()
 
 	 public void applyUV(Baseline bl,
@@ -195,6 +191,8 @@ implements PropertyChangeListener
 					 path1.lineTo( (int)uv.u, (int)uv.v);
 					 path2.lineTo( (int)-uv.u, (int)-uv.v);
 				}   
+				//Rectangle r = path1.getBounds();
+				//System.err.println(r.x+ " "+r.width+" "+r.y+" "+r.height);
 				g2.draw(path1);
 				g2.draw(path2);
 		  }
@@ -222,7 +220,6 @@ implements PropertyChangeListener
 		  tx = ty = (int) (-s * obs.ant_diameter);
 		  tw = th = (int) (s * 2.0 * obs.ant_diameter);
 		  g2.fillOval(tx, ty, tw, th);
-
 
 		  g2.translate(getWidth()/2.0, getHeight()/2.0);
 		  Baseline[] baselines = obs.getBaselines();
