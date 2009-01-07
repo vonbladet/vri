@@ -104,22 +104,15 @@ public class vri extends JApplet
 	 }
 
 	 void setArrDisp(vriObservatory obs) {
-		  allImgPanel.remove(arrDisp);
 		  arrDisp.removePropertyChangeListener(UVcDisp);
 		  arrDisp.removePropertyChangeListener(arrDispListener);
-		  allImgPanel.remove(UVcDisp);
 
 		  GridBagConstraints gbc = new GridBagConstraints();
 		  gbc.gridx = 1;
 		  gbc.gridy = 1;
-		  arrDisp = obs.getArrDisp(arrEdit);
-
 		  allImgPanel.add(arrDisp, gbc);
 
-		  gbc.gridx = 1;
-		  gbc.gridy = 4;
 		  UVcDisp = obs.getUVcDisp(aux);
-		  allImgPanel.add(UVcDisp, gbc);
 		  System.err.println("Changing UVc  ");
 		  System.err.println("Visible  "+UVcDisp.isVisible());
 		  System.err.println("Showing  "+UVcDisp.isShowing());
