@@ -313,7 +313,7 @@ class vriGreyDisp extends vriDisplay {
 	 Image img;
 	 static int imsize;     // Size of the "squared" image
 	 String message = null; // Message to print on the Display
-	 String type = null;    // Used to select real/imag/amp/phase display
+	 String type = "ampl";    // Used to select real/imag/amp/phase display
 	 double fullScale = 73000.0;
 	 String unit = "lobster";
 

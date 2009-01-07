@@ -238,6 +238,8 @@ class vriNSEWArrDisp extends vriArrDisp
 	 }
 
 	 public void paint(Graphics g) {
+		  System.err.println("NSEWArrDisp::paint called");
+
 		  double geoScale = getWidth()/obs.getLengthScale();
 		  AffineTransform geoTrans = AffineTransform.getScaleInstance(geoScale, -geoScale);
 		  trans = (AffineTransform)geoTrans.clone();
@@ -327,6 +329,7 @@ class vriNSEWArrDisp extends vriArrDisp
 
 class vriLatLonArrDisp extends vriArrDisp 
 {
+	 double r_earth = 6378137.0;
 	 vriBigObservatory obs;
 
 	 vriLatLonArrDisp(vriObservatory o, vriArrEdit e) {
@@ -352,11 +355,19 @@ class vriLatLonArrDisp extends vriArrDisp
 		  Rectangle r = getBounds();
 		  double displayScale = getDisplayScale();
 		  if (obs.components != null) {
-				g2.setColor(Color.blue);
+				g2.setColor(Color.black);
 				g2.fillRect(0, 0, r.width-1, r.height-1);
-				g2.setColor(bg);
 				AffineTransform cache = g2.getTransform();
-				g2.translate(getWidth()/2, getHeight()/2);
+
+				g2.translate(getWidth()/2, getHeight()/2);				
+				g2.setColor(Color.blue);
+				Ellipse2D earth = new Ellipse2D.Double(-r_earth, -r_earth,
+																	2*r_earth, 2*r_earth);
+				Shape e2 = trans.createTransformedShape(earth);
+				g2.fill(e2);
+
+				g2.setColor(bg);
+
 				ArrayList<Contour2D> contours2D = processComponents(obs.components);
 
 				for (Contour2D cont : contours2D) {
@@ -379,7 +390,6 @@ class vriLatLonArrDisp extends vriArrDisp
 	 }
 
 	 void paintAntennas(Graphics g) {
-		  double r_earth = 6378137.0;
 		  Graphics2D g2 = (Graphics2D) g;
 		  AffineTransform cache = g2.getTransform();
 		  g2.translate(getWidth()/2, getHeight()/2);
@@ -405,6 +415,7 @@ class vriLatLonArrDisp extends vriArrDisp
 	 }
 
 	 public void paint(Graphics g) {
+		  System.err.println("LatLonArrDisp::paint called");
 		  double geoScale = getWidth()/obs.getLengthScale();
 		  AffineTransform geoTrans = AffineTransform.getScaleInstance(geoScale, -geoScale);
 		  trans = (AffineTransform)geoTrans.clone();

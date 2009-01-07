@@ -42,19 +42,6 @@ import java.util.Date;
 import java.util.*;
 import java.beans.*;
 
-/**
- * "vri" is the main class for the VRI applet. It has the capability
- * to allow the program to be run standalone or as an applet. When it
- * is being run as an applet, it should be called with:
- * <PRE>
- * &ltAPPLET codebase="vri" code="vri.class" width=612 height=692&gt&lt/APPLET&gt
- * </PRE>
- *
- * It also has methods for returning information about the applet, such as
- * the overloading of the getAppletInfo class.
- *
- * @author Derek J. McKay
- */
 public class vri extends JApplet
 {
 	 public vriArrDisp arrDisp;
@@ -66,7 +53,6 @@ public class vri extends JApplet
 	 public vriUVpDisp UVpConvDisp;
 	 public vriArrEdit arrEdit;
 	 public vriImgEdit imgEdit;
-	 public vriUVpEdit UVpEdit;
 	 public vriAuxEdit auxEdit;
 	 public vriObsEdit obsEdit;
 	 public vriObservatory obs;
@@ -118,8 +104,6 @@ public class vri extends JApplet
 	 }
 
 	 void setArrDisp(vriObservatory obs) {
-		  vriArrDisp ad = obs.getArrDisp(arrEdit);
-		  
 		  allImgPanel.remove(arrDisp);
 		  arrDisp.removePropertyChangeListener(UVcDisp);
 		  arrDisp.removePropertyChangeListener(arrDispListener);
@@ -128,15 +112,25 @@ public class vri extends JApplet
 		  GridBagConstraints gbc = new GridBagConstraints();
 		  gbc.gridx = 1;
 		  gbc.gridy = 1;
-		  allImgPanel.add(arrDisp = ad, gbc);
+		  arrDisp = obs.getArrDisp(arrEdit);
+
+		  allImgPanel.add(arrDisp, gbc);
 
 		  gbc.gridx = 1;
 		  gbc.gridy = 4;
-		  allImgPanel.add(UVcDisp = obs.getUVcDisp(aux), gbc);
+		  UVcDisp = obs.getUVcDisp(aux);
+		  allImgPanel.add(UVcDisp, gbc);
+		  System.err.println("Changing UVc  ");
+		  System.err.println("Visible  "+UVcDisp.isVisible());
+		  System.err.println("Showing  "+UVcDisp.isShowing());
+		  System.err.println();
+
 		  System.err.println("Setting UVc scale to "+astroScale);
 		  UVcDisp.setConvScale(uvScale);
 		  UVcCtrl.setDisplay(UVcDisp);
 		  UVcDisp.repaint();
+
+		  allImgPanel.repaint();
 
 		  arrCtrl.setDisplay(arrDisp);
 		  arrDisp.addPropertyChangeListener(UVcDisp); // handles active antenna
@@ -159,6 +153,7 @@ public class vri extends JApplet
 				});
 
 		  arrDisp.propChanges.firePropertyChange("this", null, this);
+		  allImgPanel.repaint();
 	 }
 
 
@@ -180,7 +175,7 @@ public class vri extends JApplet
 		  setLayout(null);
 		  setBackground(Color.lightGray);
 		  obsman = new vriObservatoryManager();
-		  obs = obsman.select("MERLIN");
+		  obs = obsman.select("EVN");
 		  aux = new vriAuxiliary();
 
 		  setLayout(new FlowLayout());
@@ -188,7 +183,6 @@ public class vri extends JApplet
 		  obsEdit = new vriObsEdit(this); 
 		  imgEdit = new vriImgEdit(this); 
 		  arrEdit = new vriArrEdit(this, obs); 
-		  UVpEdit = new vriUVpEdit(this); 
 		  auxEdit = new vriAuxEdit(this, aux, obs);
 
 		  // Place the components on the screen
@@ -196,10 +190,8 @@ public class vri extends JApplet
 		  JTabbedPane tabbedPane = new JTabbedPane();
 		  JPanel obsEditPane = new JPanel();
 		  obsEditPane.add(obsEdit);
+		  obsEditPane.add(imgEdit);
 		  tabbedPane.addTab("Observatory", obsEditPane);
-		  JPanel imgEditPane = new JPanel();
-		  imgEditPane.add(imgEdit);
-		  tabbedPane.add("Image", imgEditPane);
 
 		  JPanel auxEditPane = new JPanel();
 		  auxEditPane.add(auxEdit);
@@ -234,8 +226,7 @@ public class vri extends JApplet
 		  gbc.gridy = 0;
 		  allImgPanel.add(new JLabel("Array"));
 		  
-
-		  arrDisp = new vriNSEWArrDisp(obs, arrEdit);
+		  arrDisp = obs.getArrDisp(arrEdit);
 		  gbc.gridx = 1;
 		  gbc.gridy = 1;
 		  allImgPanel.add(arrDisp, gbc);
@@ -248,9 +239,11 @@ public class vri extends JApplet
 		  gbc.gridy = 3;
 		  allImgPanel.add(new JLabel("Array UV Coverage"), gbc);
 
+
+		  UVcDisp = obs.getUVcDisp(aux);
 		  gbc.gridx = 1;
 		  gbc.gridy = 4;
-		  allImgPanel.add(UVcDisp=new vriNSEWUVcDisp(obs, aux), gbc);
+		  allImgPanel.add(UVcDisp, gbc);
 
 		  gbc.gridx = 1;
 		  gbc.gridy = 5;
@@ -282,7 +275,9 @@ public class vri extends JApplet
 						  if (e.getPropertyName()=="dat") {
 								System.err.println("** img disp dat changed");
 								FFTArray dat = (FFTArray) e.getNewValue();
-								UVpDisp.fft(dat);
+								if (dat != null && UVpDisp !=null) {
+									 UVpDisp.fft(dat);
+								}
 						  }
 					 }
 				});
@@ -335,15 +330,14 @@ public class vri extends JApplet
 		  // this initialization stuff should be 
 		  // pushed down to the actual objects
 
-		  vriObservatory o = obsman.select("MERLIN");
+
+		  vriObservatory o = obsman.select("EVN");
 		  arrDisp.setObservatory(o);
 		  arrDisp.repaint();
 
  		  String c = obs.defaultConfig();
 		  System.err.println("Default configuration: "+c);
 		  arrEdit.config.setSelectedItem(c);
-
-		  UVpEdit.init();
 		  setVisible(true);
 		  imgEdit.setImage("Wide double");
 	 }
@@ -394,25 +388,37 @@ class vriUVcZoomChooser extends JPanel {
 		  disp = d;
 
 		  setLayout(new GridLayout(0, 1));
-		  String earthString = "Array scale";
+		  String arrayString = "Array scale";
+		  String earthString = "Earth scale";
 		  String spaceString = "Space scale";
+
+
+		  JRadioButton arrayButton = new JRadioButton(arrayString);
+		  add(arrayButton);
 		  JRadioButton earthButton = new JRadioButton(earthString);
-		  // earthButton.setActionCommand(earthString);
 		  add(earthButton);
 		  JRadioButton spaceButton = new JRadioButton(spaceString);
 		  spaceButton.setSelected(true);
-		  // spaceButton.setActionCommand(spaceString);
 		  add(spaceButton);
 
 		  ButtonGroup group = new ButtonGroup();
+		  group.add(arrayButton);
 		  group.add(earthButton);
 		  group.add(spaceButton);
 
+		  arrayButton.addActionListener(new ActionListener() 
+				{
+					 public void actionPerformed(ActionEvent ae) {
+						  System.err.println("Array button pressed");
+						  disp.setPlotScale(Scale.ARRAY);
+						  disp.repaint();
+					 }
+				});
 		  earthButton.addActionListener(new ActionListener() 
 				{
 					 public void actionPerformed(ActionEvent ae) {
 						  System.err.println("Earth button pressed");
-						  disp.setUseEarthScale(true);
+						  disp.setPlotScale(Scale.EARTH);
 						  disp.repaint();
 					 }
 				});
@@ -420,7 +426,7 @@ class vriUVcZoomChooser extends JPanel {
 				{
 					 public void actionPerformed(ActionEvent ae) {
 						  System.err.println("Space button pressed");
-						  disp.setUseEarthScale(false);
+						  disp.setPlotScale(Scale.SPACE);
 						  disp.repaint();
 					 }
 				});
@@ -492,35 +498,9 @@ class vriImgEdit extends JPanel {
 
 }
 
-class vriUVpEdit extends JPanel {
-	 public JComboBox type;
-	 vri parent;
-
-	 public vriUVpEdit(vri p) {
-		  parent = p;
-		  setLayout(new FlowLayout());
-		  add(new JLabel("Display:", JLabel.RIGHT));
-		  String[] type_data = {"Ampl.", "Real", "Imag.",
-										"Phase", "Colour"};
-		  add(type = new JComboBox(type_data));
-		  type.addActionListener(new ActionListener() {
-					 public void actionPerformed(ActionEvent e) {
-						  parent.UVpDisp.type = type.getSelectedItem().toString();
-						  parent.UVpDisp.fftToImg(parent.UVpDisp.fft);
-					 }
-				});
-	 }
-	 public void init() {
-		  parent.UVpDisp.type = "Ampl.";
-		  parent.UVpConvDisp.type = "Ampl.";
-	 }
-}
-
 
 class vriAuxEdit extends JPanel 
-implements ActionListener {
-	 JTextField fr_field;
-	 JTextField bw_field;
+{
 	 vriAuxiliary aux;
 	 vriObservatory obs;
 	 HourAngleDec had;
@@ -532,23 +512,6 @@ implements ActionListener {
 		  obs = o;
 
 		  setLayout(new FlowLayout());
-
-		  Container vb = Box.createVerticalBox();
-		  JPanel fr_panel = new JPanel();
-		  
-		  fr_panel.add(new JLabel("Frequency:", Label.RIGHT));
-		  fr_panel.add(fr_field = new JTextField("4800.0", 8));
-		  fr_panel.add(new JLabel("MHz", Label.LEFT));
-		  vb.add(fr_panel);
-
-		  fr_field.addActionListener(this);
-
-		  JPanel bw_panel = new JPanel();
-		  bw_panel.add(new JLabel("Bandwidth:"));
-		  bw_panel.add(bw_field = new JTextField("100.0", 8));
-		  bw_panel.add(new JLabel("MHz"));
-		  vb.add(bw_panel);
-		  add(vb);
 		  
 		  had = new HourAngleDec();
 		  had.setObservatory(obs);
@@ -569,23 +532,15 @@ implements ActionListener {
 						  }
 						  parent.UVcDisp.repaint();
 						  int size = parent.UVpDisp.fft.imsize;
-						  parent.UVcDisp.uvCoverage(size); // FIXME: should trigger a listener
+						  parent.UVcDisp.uvCoverage(size); 
 					 }
 				});
-					 		  
-		  bw_field.setEditable(false);
 	 }
 
 	 void setObservatory(vriObservatory o) {
 		  obs = o;
 	 }
-
-	 public void actionPerformed(ActionEvent e) {
-		  Double d = new Double(fr_field.getText());
-		  aux.freq = d.doubleValue();
-	 }
 }
-
 
 class vriObsEdit extends JPanel {
 	 public JComboBox site_choice;
@@ -600,49 +555,45 @@ class vriObsEdit extends JPanel {
 		  setLayout(new FlowLayout(FlowLayout.LEFT));
 
 		  String[] site_choice_data = {"MERLIN",
-												 "ATCA",
-												 "WSRT",
-												 "New ATCA",
 												 "EVN",
-												 "custom"};
+												 "IYA"};
 		  add(new JLabel("Obs:",Label.RIGHT));
 
 		  add(site_choice = new JComboBox(site_choice_data));
-		  site_choice.setSelectedItem("MERLIN");
+		  site_choice.setSelectedItem("EVN");
 
 		  site_choice.addActionListener(new ActionListener() {
 					 public void actionPerformed(ActionEvent e) {
 						  String s = site_choice.getSelectedItem().toString();
 						  parent.obs = parent.obsman.select(s);
-						  // FIXME
-						  // parent.arrEdit.setupConfigMenu(parent.obs);
 						  String c = parent.obs.defaultConfig();
-						  // parent.arrEdit.config.setSelectedItem(c);
 						  parent.setArrDisp(parent.obs);
-						  parent.arrDisp.repaint();
 						  parent.auxEdit.setObservatory(parent.obs);
 						  parent.auxEdit.had.setDecRange();
-						  setFields(parent.obs);
 					 }
 				});
-
-		  add(new JLabel("Lat:", JLabel.RIGHT));
-		  add(lat_field = new JLabel("+53.0517"));
-		  add(new JLabel("Dia:", JLabel.RIGHT));
-		  add(dia_field = new JLabel("25.0"));
-		  add(new JLabel("El lim:", JLabel.RIGHT));
-		  add(el_field = new JLabel("5.0"));
-
-		  // reshape(x, y, w, h);
-		  //    System.out.println(this);
-	 }
-
-	 public void setFields(vriObservatory obs) {
-		  lat_field.setText(String.format("%.3f", Math.toDegrees(parent.obs.latitude)));
-		  dia_field.setText(String.format("%.3f", parent.obs.ant_diameter));
-		  el_field.setText(String.format("%.3f", Math.toDegrees(parent.obs.ant_el_limit)));
 	 }
 }
 
-//####################################################################//
+
+
+class vriUVpEdit extends JPanel {
+	 public JComboBox type;
+	 vri parent;
+
+	 public vriUVpEdit(vri p) {
+		  parent = p;
+		  setLayout(new FlowLayout());
+		  add(new JLabel("Display:", JLabel.RIGHT));
+		  String[] type_data = {"Ampl.", "Real", "Imag.",
+										"Phase", "Colour"};
+		  add(type = new JComboBox(type_data));
+		  type.addActionListener(new ActionListener() {
+					 public void actionPerformed(ActionEvent e) {
+						  parent.UVpDisp.type = type.getSelectedItem().toString();
+						  parent.UVpDisp.fftToImg(parent.UVpDisp.fft);
+					 }
+				});
+	 }
+}
 
