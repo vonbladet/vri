@@ -496,9 +496,7 @@ class vriObservatoryManager {
 				{1, 2, 3, 4, 5, 6}    // Default
 		  };
 
-		  merlin.cfg_name = new String[] {
-				"default"
-		  };
+		  merlin.cfg_name = new String[] {"default"};
 		  num_antennas = merlin.cfg_stations[0].length;
 		  merlin.makeAntennas(num_antennas);
 
@@ -519,12 +517,14 @@ class vriObservatoryManager {
 		  // FIXME
 		  evn.latitude = Math.toRadians(50);
 		  evn.longitude = Math.toRadians(10);
-		  String[] cfg_name = new String[]{"default"};
+		  evn.cfg_name = new String[]{"default"};
 		  
 		  observatories.put(evn.menu_name, evn);
 		  
 		  // Kn and Da are mostly used in combination with the MkII at Jodrell
-		  // shanghai, atca, mopra, hobart, kashima, tigo, westford, 
+		  // shanghai, atca ("ATCA01"), mopra, hobart, kashima, 
+		  // tigo (using "TIGOCONC")
+		  // , westford, 
 		  // arecibo and metsahovi
 
 		  // EVN: ira.cnr.it (Bologna=Medicina)
@@ -533,6 +533,38 @@ class vriObservatoryManager {
 		  // bkg.bund.de = Wettzell(!)
 		  // Metsähovi
 		  // Also, Jodrell and Cambridge, with Kn as a possible extra if we feel Merlincasty
+		  
+
+		  // 2009-01-06
+		  // WSRT, Effelsberg, Arecibo, Jodrell Bank, Cambridge, Onsala,
+		  // Metsahovi, Torun, Tigo, Shanghai, Medicina, Urumqi,
+		  // Westford, Kashima, Hobart, ATCA, Mopra.
+
+		  vriBigObservatory iya = new vriBigObservatory();
+		  TelescopeReader tr2 = new TelescopeReader("iya.json");
+		  TelescopeList tl2 = tr2.getTelescopes();
+		  
+		  iya.antennas = tl2;
+		  iya.menu_name = "IYA";
+		  iya.full_name = "International Year of Astronomy Array";
+		  Set<String> iya_nations = nr.getNationNamesInRegion("Europe");
+		  iya_nations.addAll(nr.getNationNamesInRegion("NorthAfrica"));
+		  iya_nations.addAll(nr.getNationNamesInRegion("Sub Saharan Africa"));
+		  iya_nations.addAll(nr.getNationNamesInRegion("Asia"));
+		  iya_nations.addAll(nr.getNationNamesInRegion("North America"));
+		  iya_nations.addAll(nr.getNationNamesInRegion("Latin America"));
+		  iya_nations.addAll(nr.getNationNamesInRegion("Antarctica"));
+		  // iya_nations.addAll(nr.getNationNamesInRegion("Arctic"));
+		  
+		  iya.components = nr.getSelectedNations(iya_nations);
+		  double r_earth = 6.378137e6; // m
+		  iya.lengthScale = 2*r_earth;
+		  // FIXME
+		  iya.latitude = Math.toRadians(50);
+		  iya.longitude = Math.toRadians(10);
+		  iya.cfg_name = new String[]{"default"};
+		  
+		  observatories.put(iya.menu_name, iya);
 	 }
 	 
 	 vriObservatory select(String selection) {

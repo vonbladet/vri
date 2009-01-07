@@ -15,16 +15,23 @@ import java.util.*;
 import java.awt.geom.*;
 import nl.jive.earth.*;
 
+enum Scale {
+	 ARRAY, EARTH, SPACE
+}
+
+
 abstract class vriUVcDisp extends vriDisplay 
 implements PropertyChangeListener 
 {
 	 String unit = "lambda";
-	 double c = 299.792458; // in km/s because freq is in kHz
+	 double c = 299.792458; // in 1000km/s because freq is in MHz
+	 double r_earth = 6.378137e6; // m
 	 vriObservatory obs;
 	 vriAuxiliary aux;
-	 double earthScale;
+	 double arrayScale;
 	 double spaceScale;
-	 boolean useEarthScale;
+	 double earthScale;
+	 Scale plotScale;
 	 AffineTransform aff, defaultTransform;
 	 SquareArray uvcov;
 
@@ -33,28 +40,29 @@ implements PropertyChangeListener
 		  aux = a;
 		  setObservatory(o);
 		  double lengthScale = obs.getLengthScale(); // in m
-		  double scale = roundUpPower(lengthScale/(1000*getReferenceLambda()));
+		  double scale = roundUpPower(lengthScale/getReferenceLambda());
 		  aff = new AffineTransform();
 		  defaultTransform = (AffineTransform) aff.clone();
 		  System.err.println("Default scale: "+scale);
 		  System.err.println("Default lambda: "+getReferenceLambda());
-		  earthScale = scale;
+		  arrayScale = obs.getLengthScale();
 		  spaceScale = scale; // just in case it isn't taken care of.
-		  useEarthScale = false;
+		  earthScale = 2*r_earth/getReferenceLambda();
+		  plotScale = Scale.SPACE;
 		  propChanges = new PropertyChangeSupport(this);
 	 }
 
 	 public void setObservatory(vriObservatory aobs) {
 		  obs = aobs;
 		  double lengthScale = obs.getLengthScale(); // in m
-		  double scale = roundUpPower(lengthScale/(1000*getReferenceLambda()));
-		  earthScale = scale;
+		  arrayScale = lengthScale/getLambda();
+		  earthScale = 2*r_earth/getLambda();
 		  repaint();
 	 }
 	 
-	 public void setUseEarthScale(boolean b) {
-		  useEarthScale = b;
-	 }
+	 public void setPlotScale(Scale ps) {
+		  plotScale = ps;
+ 	 }
 
 	 public double getConvScale() {
 		  return spaceScale;
@@ -75,11 +83,16 @@ implements PropertyChangeListener
 	 double getActualScale() {
 		  double s;
 		  int width = getWidth();
-		  if (useEarthScale) {
-				s = (1 / (1000.0*getLambda()) * 
-					  width / earthScale * aff.getScaleX());
-		  } else {
-				s = 1/getLambda() * width / spaceScale * aff.getScaleX();
+		  switch (plotScale) {
+		  case ARRAY:
+				s = 1 / getLambda() * width / 2.0 / arrayScale * aff.getScaleX();
+				break;
+		  case EARTH:
+				s = 1 / getLambda() * width / 2.0 / earthScale * aff.getScaleX();
+				break;
+		  case SPACE:
+		  default:
+				s = 1 / getLambda() * width / 2.0 / spaceScale * aff.getScaleX();
 		  }
 		  return s;
 	 }
@@ -91,15 +104,21 @@ implements PropertyChangeListener
 		  g2.setColor(Color.white);
 
 		  double displayScale;
-		  if (useEarthScale) {
+		  switch (plotScale) {
+		  case ARRAY:
+				displayScale = arrayScale/aff.getScaleX();
+				break;
+		  case EARTH:
 				displayScale = earthScale/aff.getScaleX();
-		  } else {
-				displayScale = 1e-3*spaceScale/aff.getScaleX();
+				break;
+		  case SPACE:
+		  default: // AKA 
+				displayScale = spaceScale/aff.getScaleX();
 		  }
 		  double l = roundPower(displayScale * (width - 20.0) / width);
 		  int m = (int) Math.round(l * width / displayScale);
 		  g.drawLine(10, r.height-10, 10+m, r.height-10);
-		  String str = roundUnit(1000*l, "lambda");
+		  String str = roundUnit(l, "lambda");
 		  g2.drawString(str, 10, r.height-12);
 	 }
 
@@ -111,9 +130,9 @@ implements PropertyChangeListener
 		  Rectangle r = getBounds();
 		  uvcov = new SquareArray(size);
 
-		  double s = 1/(getLambda())*(size/spaceScale);
+		  double s = 1/(getLambda())*(size/2.0/spaceScale);
 		  System.err.println("spaceScale: " + spaceScale);
-		  System.err.println("earthScale: " + earthScale);
+		  System.err.println("arrayScale: " + arrayScale);
 		  System.err.println("s: "+s);
 		  // Plot baselines
 		  Baseline[] baselines = obs.getBaselines();
@@ -206,22 +225,33 @@ implements PropertyChangeListener
 		  Rectangle r = getBounds();
 		  int tx, ty;
 		  int tw, th;  // Used for the shadow plot
-
 		  double displayScale = getDisplayScale(); 
 		  g2.setColor(Color.black);
 		  g2.fillRect(1, 1, r.width-2, r.height-2);
 		  g2.setColor(Color.darkGray);
 		  g2.drawRect(0, 0, r.width-1, r.height-1);
+
 		  // Calculate the metres-to-wavelengths-to-pixels conversion scale factor
 
 		  double s = getActualScale();
 		  System.err.println("Actual scale: "+s);
+		  g2.translate(getWidth()/2.0, getHeight()/2.0);
+
+		  if (plotScale == Scale.EARTH || plotScale == Scale.ARRAY) {
+				double uv_earth = s*2*r_earth;
+				System.err.println("uv_earth: "+uv_earth);
+				g2.setColor(new Color(0.0f, 0.0f, 1.0f, 0.5f));
+				g2.fill(new Ellipse2D.Double(-uv_earth, -uv_earth, 2*uv_earth, 2*uv_earth));
+		  
+				g2.setColor(Color.darkGray);
+		  }
+
+					 
 		  // Do the shadow zone (use the tx/ty/tw/th parameters temporarily)
 		  tx = ty = (int) (-s * obs.ant_diameter);
 		  tw = th = (int) (s * 2.0 * obs.ant_diameter);
 		  g2.fillOval(tx, ty, tw, th);
 
-		  g2.translate(getWidth()/2.0, getHeight()/2.0);
 		  Baseline[] baselines = obs.getBaselines();
 		  for  (int i = 0; i<baselines.length; i++) {
 				Baseline bl = baselines[i];
