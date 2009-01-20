@@ -10,6 +10,7 @@
 package nl.jive.vri;
 
 import java.awt.*;
+import java.awt.font.*;
 import java.awt.event.*;
 import java.awt.geom.*; // AffineTransform
 import javax.swing.*;
@@ -37,8 +38,10 @@ class vriDisplay extends JComponent
 
 	 public Dimension getPreferredSize() {
 		  int width, height;
-		  width = 128;
-		  height = 128;
+		  // width = 128;
+ 		  // height = 128;
+		  width = 256;
+		  height = 256;
 		  return new Dimension(width, height);
 	 }
 
@@ -70,8 +73,10 @@ class vriDisplay extends JComponent
 
 	 public void plotFocus(Graphics g) {
 		  Rectangle r = getBounds();
+		  Color c = g.getColor();
 		  g.setColor(hasFocus ? Color.cyan : Color.black);
 		  g.drawRect(0, 0, r.width-1, r.height-1);
+		  g.setColor(c);
 	 }
 
 	 public void focusGained(FocusEvent e) {
@@ -79,6 +84,21 @@ class vriDisplay extends JComponent
 		  hasFocus = true;
 		  plotFocus(g);
 	 }	 
+
+
+	 void paintRealScale(Graphics2D g2, Rectangle r, String str, int m) {
+		  Font font = g2.getFont();
+		  FontRenderContext frc = g2.getFontRenderContext();
+		  Rectangle2D bounds = font.getStringBounds(str, frc); 
+		  int w = Math.max((int)bounds.getWidth(), m);
+		  g2.setColor(Color.white);
+		  g2.fill(new Rectangle(10-4, r.height-12-(int)bounds.getHeight(), 
+										w+8, (int)bounds.getHeight()+5));
+		  g2.setColor(Color.black);
+		  g2.drawString(str, 10, r.height-12);
+		  g2.drawLine(10, r.height-10, 10+m, r.height-10);
+		  
+	 }
 
 	 double roundPower(double l) {
 		  double power = Math.log10(l);

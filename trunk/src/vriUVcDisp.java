@@ -45,9 +45,9 @@ implements PropertyChangeListener
 		  defaultTransform = (AffineTransform) aff.clone();
 		  System.err.println("Default scale: "+scale);
 		  System.err.println("Default lambda: "+getReferenceLambda());
-		  arrayScale = obs.getLengthScale();
+		  arrayScale = obs.getLengthScale()/getReferenceLambda();
 		  spaceScale = scale; // just in case it isn't taken care of.
-		  earthScale = 2*r_earth/getReferenceLambda();
+		  earthScale = 2*r_earth/getReferenceLambda(); // full width
 		  plotScale = Scale.SPACE;
 		  propChanges = new PropertyChangeSupport(this);
 	 }
@@ -80,22 +80,6 @@ implements PropertyChangeListener
 		  return c/4800.0;
 	 }
 
-	 double getActualScale() {
-		  double s;
-		  int width = getWidth();
-		  switch (plotScale) {
-		  case ARRAY:
-				s = 1 / getLambda() * width / 2.0 / arrayScale * aff.getScaleX();
-				break;
-		  case EARTH:
-				s = 1 / getLambda() * width / 2.0 / earthScale * aff.getScaleX();
-				break;
-		  case SPACE:
-		  default:
-				s = 1 / getLambda() * width / 2.0 / spaceScale * aff.getScaleX();
-		  }
-		  return s;
-	 }
 
 	 void paintScale(Graphics g) {
 		  Graphics2D g2 = (Graphics2D) g;
@@ -106,10 +90,10 @@ implements PropertyChangeListener
 		  double displayScale;
 		  switch (plotScale) {
 		  case ARRAY:
-				displayScale = arrayScale/aff.getScaleX();
+				displayScale = 2.0*arrayScale/aff.getScaleX();
 				break;
 		  case EARTH:
-				displayScale = earthScale/aff.getScaleX();
+				displayScale = 2.0*earthScale/aff.getScaleX();
 				break;
 		  case SPACE:
 		  default: // AKA 
@@ -117,9 +101,8 @@ implements PropertyChangeListener
 		  }
 		  double l = roundPower(displayScale * (width - 20.0) / width);
 		  int m = (int) Math.round(l * width / displayScale);
-		  g.drawLine(10, r.height-10, 10+m, r.height-10);
 		  String str = roundUnit(l, "lambda");
-		  g2.drawString(str, 10, r.height-12);
+		  paintRealScale(g2, r, str, m);
 	 }
 
 	 public SquareArray getUVCoverage() {
@@ -127,10 +110,12 @@ implements PropertyChangeListener
 	 }
 
 	 public void uvCoverage(int size) {
+		  
 		  Rectangle r = getBounds();
 		  uvcov = new SquareArray(size);
 
-		  double s = 1/(getLambda())*(size/2.0/spaceScale);
+		  // spacescale is for full screen
+		  double s = (size) / (getLambda() * spaceScale);
 		  System.err.println("spaceScale: " + spaceScale);
 		  System.err.println("arrayScale: " + arrayScale);
 		  System.err.println("s: "+s);
@@ -171,8 +156,8 @@ implements PropertyChangeListener
  				int uc = (int)(uv.u*uvscale);
  				int vc = (int)(uv.v*uvscale);
 				if (uc > -size/2 && uc < size/2 && vc > -size/2 && vc < size/2) {
-					 uvcov.set(vc+size/2, uc+size/2, 1);
-					 uvcov.set(-vc+size/2, -uc+size/2, 1);
+					 uvcov.set(uc+size/2, vc+size/2, 1);
+					 uvcov.set(-uc+size/2, -vc+size/2, 1);
 				}
 		  }   
 	 }  
@@ -219,13 +204,30 @@ implements PropertyChangeListener
 	 }  
 
 
+	 double getActualScale() {
+		  double s; // "actual scale" must be in m, so that we can calculate UV tracks
+		  int width = getWidth();
+		  switch (plotScale) {
+		  case ARRAY:
+				s = (width/2.0) / (getLambda() * arrayScale) * aff.getScaleX();
+				break;
+		  case EARTH:
+				s = (width/2.0) / (getLambda() * earthScale) * aff.getScaleX();
+				break;
+		  case SPACE:
+		  default:
+				// Space scale is for full width of image
+				s = (width) / (getLambda() * spaceScale) * aff.getScaleX();
+		  }
+		  return s;
+	 }
+
 	 public void paint(Graphics g) {
 		  Graphics2D g2 = (Graphics2D) g;
 		  // g2.setTransform(aff);
 		  Rectangle r = getBounds();
 		  int tx, ty;
 		  int tw, th;  // Used for the shadow plot
-		  double displayScale = getDisplayScale(); 
 		  g2.setColor(Color.black);
 		  g2.fillRect(1, 1, r.width-2, r.height-2);
 		  g2.setColor(Color.darkGray);
@@ -245,12 +247,12 @@ implements PropertyChangeListener
 		  
 				g2.setColor(Color.darkGray);
 		  }
-
-					 
 		  // Do the shadow zone (use the tx/ty/tw/th parameters temporarily)
 		  tx = ty = (int) (-s * obs.ant_diameter);
 		  tw = th = (int) (s * 2.0 * obs.ant_diameter);
 		  g2.fillOval(tx, ty, tw, th);
+		  System.err.println(String.format("UVc.Aux parameters: ha1 %f ha2 %f dec %f",  
+													  aux.ha1, aux.ha2, aux.dec));
 
 		  Baseline[] baselines = obs.getBaselines();
 		  for  (int i = 0; i<baselines.length; i++) {
@@ -275,7 +277,13 @@ class vriNSEWUVcDisp extends vriUVcDisp
 	 public void propertyChange(PropertyChangeEvent e) {
 		  String s = e.getPropertyName();
 		  if (s=="active") {
-				selectedAnt = (vriLocation) e.getNewValue();
+				int i = (Integer) e.getNewValue();
+				vriSmallObservatory o = (vriSmallObservatory) obs;
+				if (i>0) {
+					 selectedAnt = (vriLocation) o.antennas[i];
+				} else {
+					 selectedAnt = null;
+				}
 				repaint();
 		  } else {
 				System.err.println("** UVcDisp: Got propertyChange for "+e.getPropertyName());

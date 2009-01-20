@@ -23,6 +23,7 @@ abstract class vriObservatory
 	 double ant_diameter;
 	 double ant_el_limit;
 	 String[] cfg_name;
+	 boolean zoomer;
 
 	 ArrayList<Component> components;
 
@@ -37,6 +38,7 @@ abstract class vriObservatory
 	 abstract void stationLock();
 	 abstract vriArrDisp getArrDisp(vriArrEdit ae);
 	 abstract vriUVcDisp getUVcDisp(vriAuxiliary aux);
+	 abstract vriDisplayCtrl getDispCtrl(vriArrDisp ad);
 }
 
 class vriSmallObservatory extends vriObservatory {
@@ -50,10 +52,15 @@ class vriSmallObservatory extends vriObservatory {
 	 vriLocation[] antennas;      
 		  
 	 vriSmallObservatory() {
+		  zoomer = true; // default
 	 }
 
 	 vriArrDisp getArrDisp(vriArrEdit ae) {
 		  return new vriNSEWArrDisp(this, ae);
+	 }
+
+	 vriDisplayCtrl getDispCtrl(vriArrDisp ad) {
+		  return new vriDisplayZoomCtrl(ad);
 	 }
 
 	 vriUVcDisp getUVcDisp(vriAuxiliary a) {
@@ -163,11 +170,19 @@ class vriBigObservatory extends vriObservatory {
 	 TelescopeList antennas;
 
 	 vriBigObservatory() {
-
+		  zoomer = false;
 	 }
 
 	 vriArrDisp getArrDisp(vriArrEdit ae) {
 		  return new vriLatLonArrDisp(this, ae);
+	 }
+
+	 vriDisplayCtrl getDispCtrl(vriArrDisp ad) {
+		  if (zoomer) {
+				return new vriDisplayZoomCtrl(ad);
+		  } else {
+				return new vriDisplayRotateCtrl(ad);
+		  }
 	 }
 
 	 vriUVcDisp getUVcDisp(vriAuxiliary aux) {
@@ -507,6 +522,7 @@ class vriObservatoryManager {
 		  TelescopeReader tr = new TelescopeReader("evn.json");
 		  TelescopeList tl = tr.getTelescopes();
 		  
+		  evn.zoomer = true; // override default
 		  evn.antennas = tl;
 		  evn.menu_name = "EVN";
 		  evn.full_name = "EVN";
@@ -554,13 +570,14 @@ class vriObservatoryManager {
 		  iya_nations.addAll(nr.getNationNamesInRegion("North America"));
 		  iya_nations.addAll(nr.getNationNamesInRegion("Latin America"));
 		  iya_nations.addAll(nr.getNationNamesInRegion("Antarctica"));
-		  // iya_nations.addAll(nr.getNationNamesInRegion("Arctic"));
+		  iya_nations.addAll(nr.getNationNamesInRegion("Australia"));
+
 		  
 		  iya.components = nr.getSelectedNations(iya_nations);
 		  double r_earth = 6.378137e6; // m
-		  iya.lengthScale = 2*r_earth;
+		  iya.lengthScale = 1.1*2*r_earth; // 10% bigger
 		  // FIXME
-		  iya.latitude = Math.toRadians(50);
+		  iya.latitude = Math.toRadians(20);
 		  iya.longitude = Math.toRadians(10);
 		  iya.cfg_name = new String[]{"default"};
 		  

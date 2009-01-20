@@ -21,6 +21,15 @@ class vriUVpDisp extends vriGreyDisp {
 		  message = new String("No current transform");
 	 }
 
+	 void setFullScale(double s){
+		  // factor of a half since the UV plane is both positive 
+		  // and negative
+		  // No!
+		  // the width of the screen is still the width of the screen
+		  fullScale = s;
+	 }
+
+
 	 public void fft(FFTArray dat) {
 		  if (dat.data == null) {
 				System.err.println("UVpDisp dat not set");

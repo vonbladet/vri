@@ -5,6 +5,7 @@ import java.lang.*;
 import java.lang.Math;
 import java.beans.*;
 import java.awt.*;
+import java.awt.font.*;
 import java.awt.image.*;
 import java.awt.event.*;
 import java.awt.geom.*;
@@ -19,14 +20,17 @@ import nl.jive.earth.Point2D;
 
 abstract class vriArrDisp extends vriDisplay {
 	 AffineTransform trans;
-	 vriObservatory obs;  // Observatory being used
 	 vriArrEdit edit;    // Edit panel associated with this instance
 	 Image image;       // Image of antenna for ArrDisp
 	 Color bg = new Color(174, 255, 81);
+	 double latitude, longitude;  // In radians
+	 String unit="m";
 
 	 vriArrDisp(vriObservatory o, vriArrEdit e) {
 		  super();
 		  setObservatory(o);
+		  latitude = o.latitude;
+		  longitude = o.longitude;
 		  loadImage();
 		  edit = e;
 		  propChanges = new PropertyChangeSupport(this);
@@ -43,8 +47,19 @@ abstract class vriArrDisp extends vriDisplay {
 		  }
 	 }		  
 
-	 void setImage(Image i) {
-		  image = i;
+	 ArrayList<Contour2D> processComponents(ArrayList<Component> components) 
+	 {
+		  ArrayList<Contour2D> contours2D = new ArrayList<Contour2D>();
+		  for (Component comp : components) {
+				if (comp!=null) {
+					 ArrayList<Contour2D> cs = comp.rotateAndProject(Math.toDegrees(-longitude),
+																					 Math.toDegrees(-latitude));
+					 if (cs!=null) {
+						  contours2D.addAll(cs);
+					 }
+				}
+		  }
+		  return contours2D;
 	 }
 
 	 static Polygon pointsToPolygon(LinkedList<Point2D> pts, 
@@ -71,39 +86,39 @@ abstract class vriArrDisp extends vriDisplay {
 
 	 abstract void paintAntennas(Graphics g);
 
-	 void paintScale(Graphics g) {
-		  // Draw a scale
-		  Rectangle r = getBounds();
-		  double displayScale = trans.getScaleX();
-		  System.err.println("** Affscale: "+aff.getScaleX());
-		  int viewWidth = getWidth();
-		  double l = roundPower((viewWidth - 20.0) / displayScale); 
-		  int m = (int) Math.round(l * displayScale); //
-		  System.err.println("** m: "+m+" l: "+l);
-		  double a = aff.getScaleX();
-		  System.err.println("** Ratio: "+m/l/a);
+	 abstract void setObservatory(vriObservatory o);
 
+	 void paintScale(Graphics g) {
+		  Graphics2D g2 = (Graphics2D) g;
+		  Rectangle r = getBounds();
+		  int width = getWidth();
+		  double displayScale = trans.getScaleX();
+		  g2.setColor(Color.blue);
+		  double l = roundPower((width - 20.0) / displayScale); 
+		  int m = (int) Math.round(l * displayScale); //
+		  String str = roundUnit(l, unit); //new String();
+		  Font font = g2.getFont();
+		  FontRenderContext frc = g2.getFontRenderContext();
+		  Rectangle2D bounds = font.getStringBounds(str, frc); 
+		  g2.setColor(Color.white);
+		  int w = Math.max((int)bounds.getWidth(), m);
+		  g2.fill(new Rectangle(10-4, r.height-12-(int)bounds.getHeight(), 
+										w+8, (int)bounds.getHeight()+5));
+		  		  g2.setColor(Color.black);
+		  g2.drawString(str, 10, r.height-12);
 		  g.drawLine(10, r.height-10, 10+m, r.height-10);
-		  String s = new String();
-		  if (l >= 1000.0) {
-				s = Double.toString(l/1000.0) + "km";
-		  } else {
-				s = Double.toString(l) + "m";
-		  }
-		  g.drawString(s, 10, r.height-12);
 	 }
 
-	 abstract void setObservatory(vriObservatory o);
-	 
 }
 
 class vriNSEWArrDisp extends vriArrDisp 
 {
 	 vriSmallObservatory obs;  // Observatory being used
-	 vriLocation pick;    // Antenna selected by the mouse
+	 int pick;    // Index of antenna selected by the mouse
 
 	 vriNSEWArrDisp(vriObservatory o, vriArrEdit e) {
 		  super(o, e);
+		  pick = -1;
 		  addMouseListener(new Mousey());
 		  addMouseMotionListener(new MoveyMousey());
 		  repaint();
@@ -126,16 +141,6 @@ class vriNSEWArrDisp extends vriArrDisp
 		  repaint();
 	 }
 
-	 ArrayList<Contour2D> processComponents(ArrayList<Component> components) 
-	 {
-		  ArrayList<Contour2D> contours2D = new ArrayList<Contour2D>();
-		  for (Component comp : components) {
-				contours2D.addAll(comp.rotateAndProject(Math.toDegrees(-obs.longitude),
-																	 Math.toDegrees(-obs.latitude)));
-		  }
-		  return contours2D;
-	 }
-
 
 	 void paintBackground(Graphics g) {
 		  Graphics2D g2 = (Graphics2D) g;
@@ -148,7 +153,6 @@ class vriNSEWArrDisp extends vriArrDisp
 				AffineTransform cache = g2.getTransform();
 				g2.translate(getWidth()/2, getHeight()/2);
 				ArrayList<Contour2D> contours2D = processComponents(obs.components);
-
 				for (Contour2D cont : contours2D) {
 					 if (cont.isClosed()) {
 						  LinkedList<Point2D> pts = cont.getPoints();
@@ -160,7 +164,6 @@ class vriNSEWArrDisp extends vriArrDisp
 					 } else {
 						  System.err.println("*** Unclosed contour, skipping");
 					 }
-
 				}
 				g2.setTransform(cache);
 		  } else {
@@ -258,7 +261,6 @@ class vriNSEWArrDisp extends vriArrDisp
 		  paintAntennas(g);
 		  g2.setTransform(a);
 		  paintScale(g);
-
 	 }
 
 	 Point screenToGeom(Point p1) 
@@ -273,6 +275,22 @@ class vriNSEWArrDisp extends vriArrDisp
 		  return p3;
 	 }
 
+	 int pointToAntenna(Point p2) 
+	 {
+		  int ind = 0;
+		  double bestdist = Double.MAX_VALUE;
+		  for (int i = 0; i < obs.antennas.length; i++) {
+				vriLocation ant = obs.antennas[i];
+				double dist = ((ant.EW - p2.x) * (ant.EW - p2.x) +
+									(ant.NS - p2.y) * (ant.NS - p2.y));
+				if (dist < bestdist) {
+					 ind = i;
+					 bestdist = dist;
+				}
+		  }
+		  return ind;
+	 }
+
 	 class Mousey extends MouseAdapter {
 		  public void mousePressed(MouseEvent e) {
 				System.err.println("** MousePressed");
@@ -280,20 +298,11 @@ class vriNSEWArrDisp extends vriArrDisp
 				Point p1 = e.getPoint();
 				try {
 					 Point p2 = screenToGeom(p1);
-					 double bestdist = Double.MAX_VALUE;
-					 for (int i = 0; i < obs.antennas.length; i++) {
-						  vriLocation ant = obs.antennas[i];
-						  double dist = ((ant.EW - p2.x) * (ant.EW - p2.x) +
-											  (ant.NS - p2.y) * (ant.NS - p2.y));
-						  if (dist < bestdist) {
-								pick = ant;
-								bestdist = dist;
-						  }
-					 }
-					 pick.EW = p2.x;
-					 pick.NS = p2.y;
+					 pick = pointToAntenna(p2);
+					 obs.antennas[pick].EW = p2.x;
+					 obs.antennas[pick].NS = p2.y;
 					 repaint();
-					 propChanges.firePropertyChange("active", null, pick);
+					 propChanges.firePropertyChange("active", -1, pick);
 					 edit.config.setSelectedItem("custom");
 				} catch (NoninvertibleTransformException ex) {
 					 System.err.println("Transformation not invertible");
@@ -303,7 +312,7 @@ class vriNSEWArrDisp extends vriArrDisp
 		  public void mouseReleased(MouseEvent e) {
 				System.err.println("** MouseReleased");
 				repaint();
-				propChanges.firePropertyChange("active", pick, null);
+				propChanges.firePropertyChange("active", pick, -1);
 		  }
 	 }
 
@@ -314,8 +323,8 @@ class vriNSEWArrDisp extends vriArrDisp
 				Point p1 = e.getPoint();
 				try {
 					 Point p2 = screenToGeom(p1);
-					 pick.EW = p2.x;
-					 pick.NS = p2.y;
+					 obs.antennas[pick].EW = p2.x;
+					 obs.antennas[pick].NS = p2.y;
 					 repaint();
 					 propChanges.firePropertyChange("active", null, pick); 
 					 // The above used to be ("active", pick, pick), but nothing seemed to happen
@@ -329,8 +338,8 @@ class vriNSEWArrDisp extends vriArrDisp
 
 class vriLatLonArrDisp extends vriArrDisp 
 {
-	 double r_earth = 6378137.0;
 	 vriBigObservatory obs;
+	 double r_earth = 6378137.0;
 
 	 vriLatLonArrDisp(vriObservatory o, vriArrEdit e) {
 		  super(o, e);
@@ -340,14 +349,8 @@ class vriLatLonArrDisp extends vriArrDisp
 		  obs = (vriBigObservatory) aobs;
 	 }
 
-	 ArrayList<Contour2D> processComponents(ArrayList<Component> components) 
-	 {
-		  ArrayList<Contour2D> contours2D = new ArrayList<Contour2D>();
-		  for (Component comp : components) {
-				contours2D.addAll(comp.rotateAndProject(Math.toDegrees(-obs.longitude),
-																	 Math.toDegrees(-obs.latitude)));
-		  }
-		  return contours2D;
+	 void setLongitude(double l) {
+		  longitude = l;
 	 }
 
 	 void paintBackground(Graphics g) {
@@ -395,8 +398,8 @@ class vriLatLonArrDisp extends vriArrDisp
 		  g2.translate(getWidth()/2, getHeight()/2);
 
 		  ArrayList<ProjectedTelescope> ptl = 
-				obs.antennas.rotateAndProject(Math.toDegrees(-obs.longitude), 
-														Math.toDegrees(-obs.latitude));
+				obs.antennas.rotateAndProject(Math.toDegrees(-longitude), 
+														Math.toDegrees(-latitude));
 		  int imgw = image.getWidth(this);
 		  int imgh = image.getHeight(this);
 		  for (ProjectedTelescope pt : ptl) {
@@ -424,8 +427,8 @@ class vriLatLonArrDisp extends vriArrDisp
 		  Graphics2D g2 = (Graphics2D) g;	 
 		  paintBackground(g);
 		  paintAntennas(g);
-		  paintScale(g);
-
+		  if (obs.zoomer) {
+				paintScale(g);
+		  }
 	 }
-
 }	 

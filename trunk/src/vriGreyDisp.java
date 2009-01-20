@@ -335,31 +335,16 @@ class vriGreyDisp extends vriDisplay {
 	 double getFullScale(){
 		  return fullScale;
 	 }
+
 	 void paintScale(Graphics g) {
 		  Graphics2D g2 = (Graphics2D) g;
 		  Rectangle r = getBounds();
 		  int width = img.getWidth(this); // getWidth();
 		  double displayScale = getDisplayScale();
-		  g2.setColor(Color.blue);
 		  double l = roundPower(fullScale / displayScale * (width - 20.0) / width);
 		  int m = (int) Math.round(l * width * displayScale /  fullScale);
-		  String str = new String();
-		  str = roundUnit(l, unit);
-		  Font font = g2.getFont();
-		  FontRenderContext frc = g2.getFontRenderContext();
-		  Rectangle2D bounds = font.getStringBounds(str, frc); 
-		  g2.setColor(Color.white);
-		  int w;
-		  if (m<(int)bounds.getWidth()) {
-				w = (int)bounds.getWidth();
-		  } else {
-				w = m;
-		  }
-		  g2.fill(new Rectangle(10-4, r.height-12-(int)bounds.getHeight(), 
-										w+8, (int)bounds.getHeight()+5));
-		  g2.setColor(Color.black);
-		  g2.drawString(str, 10, r.height-12);
-		  g.drawLine(10, r.height-10, 10+m, r.height-10);
+		  String str = roundUnit(l, unit);
+		  paintRealScale(g2, r, str, m);
 	 }
 
 	 public void paint(Graphics g) {
