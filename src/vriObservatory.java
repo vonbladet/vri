@@ -11,224 +11,18 @@ package nl.jive.vri;
 
 import java.util.*;
 import nl.jive.earth.*;
+import nl.jive.earth.Component;
 import java.beans.*;
-
-abstract class vriObservatory 
-{
-	 String menu_name;      // Name in observatory pop-up menu
-	 String full_name;      // Proper name of obs.
-	 double lengthScale;    // of observatory, in m
-	 double latitude;
-	 double longitude;
-	 double ant_diameter;
-	 double ant_el_limit;
-	 String[] cfg_name;
-	 boolean zoomer;
-
-	 ArrayList<Component> components;
-
-	 abstract Baseline[] getBaselines();
-	 double getLengthScale() {
-		  return lengthScale;
-	 }
-
-	 abstract String defaultConfig();
-	 abstract boolean setConfig(String cfg_str);  // BOOlean?!
-	 abstract void selectNumAnt(int i);
-	 abstract void stationLock();
-	 abstract vriArrDisp getArrDisp(vriArrEdit ae);
-	 abstract vriUVcDisp getUVcDisp(vriAuxiliary aux);
-	 abstract vriDisplayCtrl getDispCtrl(vriArrDisp ad);
-}
-
-class vriSmallObservatory extends vriObservatory {
-	 private static PropertyChangeSupport propChanges;
-
-	 vriLocation[] stations; 
-	 vriTrack[] trk; 
-	 vriLocation ref;
-	 vriConfig[] cfg;       // Set of "standard array configurations"
-	 int[][] cfg_stations;  // Array of station numbers of configs
-	 vriLocation[] antennas;      
-		  
-	 vriSmallObservatory() {
-		  zoomer = true; // default
-	 }
-
-	 vriArrDisp getArrDisp(vriArrEdit ae) {
-		  return new vriNSEWArrDisp(this, ae);
-	 }
-
-	 vriDisplayCtrl getDispCtrl(vriArrDisp ad) {
-		  return new vriDisplayZoomCtrl(ad);
-	 }
-
-	 vriUVcDisp getUVcDisp(vriAuxiliary a) {
-		  return new vriNSEWUVcDisp(this, a);
-	 }
-
-	 Baseline[] getBaselines() {
-		  int n = antennas.length;
-		  Baseline[] baselines = new NSEWBaseline[n*(n-1)/2];
-
-		  int count = 0;
-		  for(int i = 0; i < (antennas.length-1); i++) {
-				vriLocation ant1 = antennas[i];
-				for(int j = i+1; j < (antennas.length); j++) {
-					 vriLocation ant2 = antennas[j];
-					 baselines[count] = new NSEWBaseline(ant1, ant2, latitude);
-					 count++;
-				}
-		  }
-		  return baselines;
-	 }
-	 
-	 void makeAntennas(int num_antennas) {
-		  antennas = new vriLocation[num_antennas];
-		  for (int i = 0; i < antennas.length; i++) 
-				antennas[i] = new vriLocation();
-	 }
-
-	 void selectNumAnt(int n) {
-		  int num_antennas = n;
-		  vriLocation a[] = new vriLocation[num_antennas];
-		  for (int i = 0; i < a.length; i++) {
-				a[i] = new vriLocation();
-				if (i < antennas.length) {
-					 a[i].EW = antennas[i].EW;
-					 a[i].NS = antennas[i].NS;
-					 a[i].UD = antennas[i].UD;
-				}
-		  }
-		  antennas = a;
-	 }
-
-	 String defaultConfig() {
-		  for(int j = 0; j < antennas.length; j++) {
-				if(j < cfg_stations[0].length) {
-					 vriLocation station = stations[cfg_stations[0][j]-1];
-					 antennas[j].EW = station.EW;
-					 antennas[j].NS = station.NS;
-					 antennas[j].UD = station.UD;
-				}
-		  }
-		  return cfg_name[0];
-	 }
-
-	 boolean setConfig(String cfg_str) {
-		  for(int i = 0; i < cfg_stations.length; i++) {
-				if (cfg_name[i].equals(cfg_str)) {
-					 for (int j = 0; j < antennas.length; j++) {
-						  if (j < cfg_stations[i].length) {
-								vriLocation station = stations[cfg_stations[i][j]-1];
-								antennas[j].EW = station.EW;
-								antennas[j].NS = station.NS;
-								antennas[j].UD = station.UD;
-						  }
-					 }
-					 return true;
-				} 
-		  }
-		  return false;
-	 }
-
-	 void stationLock() {
-		  int s = 0;
-		  double dist;
-
-		  for (int i = 0; i < antennas.length; i++) {
-				vriLocation a = antennas[i];
-				double bestdist = Double.MAX_VALUE;
-				for (int j = 0; j < stations.length; j++) {
-					 vriLocation station = stations[j];
-					 dist = (Math.pow((a.NS - station.NS), 2.0) + 
-								Math.pow((a.EW - station.EW), 2.0));
-					 if (dist < bestdist) {
-						  s = j;
-						  bestdist = dist;
-					 }
-				}
-				antennas[i].NS = stations[s].NS;
-				antennas[i].EW = stations[s].EW;
-		  }
-	 }
+import java.awt.geom.*;
 
 
-	 void report() {
-
-		  System.out.println ("\nObservatory report... "+full_name);
-		  for(int i = 0; i < antennas.length; i++) {
-				System.out.println ("Antenna "+i+
-										  " NS = "+antennas[i].NS+" EW = "+antennas[i].EW+" UD = "+antennas[i].UD );
-		  }
-	 }
-
-}
-
-class vriBigObservatory extends vriObservatory {
-	 
-	 TelescopeList antennas;
-
-	 vriBigObservatory() {
-		  zoomer = false;
-	 }
-
-	 vriArrDisp getArrDisp(vriArrEdit ae) {
-		  return new vriLatLonArrDisp(this, ae);
-	 }
-
-	 vriDisplayCtrl getDispCtrl(vriArrDisp ad) {
-		  if (zoomer) {
-				return new vriDisplayZoomCtrl(ad);
-		  } else {
-				return new vriDisplayRotateCtrl(ad);
-		  }
-	 }
-
-	 vriUVcDisp getUVcDisp(vriAuxiliary aux) {
-		  return new vriLatLonUVcDisp(this, aux);
-	 }
-
-
-	 Baseline[] getBaselines() {
-		  int n = antennas.size();
-		  Baseline[] baselines = new LatLonBaseline[n*(n-1)/2];
-
-		  int count = 0;
-		  for(int i = 0; i < (antennas.size()-1); i++) {
-				LatLon ant1 = antennas.get(i).position;
-				for(int j = i+1; j < (antennas.size()); j++) {
-					 LatLon ant2 = antennas.get(j).position;
-					 baselines[count] = new LatLonBaseline(ant1, ant2);
-					 count++;
-				}
-		  }
-		  return baselines;
-	 }
-	 
-	 String defaultConfig() {
-		  return "Default";
-	 }
-
-	 boolean setConfig(String cfg_str) {
-		  return true;
-	 }
-
-	 void selectNumAnt(int i) {
-	 }
-
-	 void stationLock() {
-
-	 }
-}
-
-
-class vriObservatoryManager {
+class Geometry {
+	 HashMap<String, ArrayList<Component>> geomap;
 	 NationReader nr;
-	 HashMap<String, vriObservatory> observatories;
-	 
-	 vriObservatoryManager()
+
+	 Geometry() 
 	 {
+		  geomap = new HashMap<String, ArrayList<Component>>();
 		  try {
 				nr = new NationReader("gis.json");
 		  } catch (org.json.JSONException e) {
@@ -243,6 +37,225 @@ class vriObservatoryManager {
 		  } else {
 				System.err.println("Geometries loaded");
 		  }
+		  try {
+				geomap.put("ATCA", nr.getNation("Australia").getComponents());
+				geomap.put("NATCA", nr.getNation("Australia").getComponents());
+				
+				Set<String> europe = nr.getNationNamesInRegion("Europe");
+				europe.remove("Russia");
+				ArrayList<Component> eurcomps = nr.getSelectedNations(europe);
+				geomap.put("EVN", eurcomps);
+				geomap.put("MERLIN", eurcomps);
+				Set<String> iya_nations = new HashSet<String>();
+
+				String[] world = new String[] {"Europe", "NorthAfrica", "Sub Saharan Africa",
+														 "Asia", "North America", "Latin America",
+														 "Antarctica", "Australia"};
+				for (String s : world) {
+					 iya_nations.addAll(nr.getNationNamesInRegion(s));
+				}
+				geomap.put("IYA", nr.getSelectedNations(iya_nations));
+		  } catch (NameNotFoundException e) {
+				System.err.println("Country or region not found");
+		  }
+	 }  
+	 ArrayList<Component> getComponents(String s) {
+		  return geomap.get(s);
+	 }
+}
+
+abstract class vriObservatory
+{
+	 String menu_name;      // Name in observatory pop-up menu
+	 String full_name;      // Proper name of obs.
+	 double lengthScale;    // of observatory, in m
+	 double latitude;
+	 double longitude;
+	 double ant_diameter;
+	 double ant_el_limit;
+	 boolean zoomer;
+
+	 String[] cfg_name;
+
+	 double getLengthScale() {
+		  return lengthScale;
+	 }
+
+	 abstract int numberOfAntennas();
+	 abstract ArrayList<Baseline> getBaselines();
+	 abstract boolean isAntennaInBaseline(int i, Baseline b);
+	 abstract String defaultConfig();
+	 abstract boolean setConfig(String cfg_str);  // BOOlean?!
+	 abstract void selectNumAnt(int i);
+	 abstract void stationLock();
+	 abstract vriArrDisp getArrDisp();
+	 abstract vriUVcDisp getUVcDisp(vriAuxiliary aux);
+	 abstract vriDisplayCtrl getDispCtrl(vriArrDisp ad);
+}
+
+class vriSmallObservatory extends vriObservatory {
+	 private static PropertyChangeSupport propChanges;
+
+	 ArrayList<vriLocation> stations; 
+	 vriTrack[] trk; 
+	 vriLocation ref;
+	 int[][] cfg_stations;  // Array of station numbers of configs
+	 NSEWTelescopeList antennas;      
+		  
+	 vriSmallObservatory() {
+		  zoomer = true; // default
+	 }
+
+	 int numberOfAntennas() {
+		  return antennas.size();
+	 }
+
+	 void makeAntennas(int n) {
+		  antennas = new NSEWTelescopeList(n);
+	 }
+
+	 vriArrDisp getArrDisp() {
+		  return new vriNSEWArrDisp(this);
+	 }
+
+	 vriDisplayCtrl getDispCtrl(vriArrDisp ad) {
+		  return new vriDisplayZoomCtrl(ad);
+	 }
+
+	 vriUVcDisp getUVcDisp(vriAuxiliary a) {
+		  return new vriUVcDisp(this, a);
+	 }
+
+	 
+	 ArrayList<Baseline> getBaselines() {
+		  return antennas.getBaselines();
+	 }
+
+	 boolean isAntennaInBaseline(int i, Baseline b) {
+		  return antennas.isAntennaInBaseline(i, b);
+	 }
+
+	 void selectNumAnt(int n) {
+		  int num_antennas = n;
+		  antennas.subList(0, n-1).clear();
+	 }
+
+	 String defaultConfig() {
+		  int[] config = cfg_stations[0];
+		  for (int j = 0; j < antennas.size(); j++) {
+				if (j < config.length) {
+					 vriLocation station = stations.get(config[j]-1);
+					 antennas.get(j).moveTo(station);
+				}
+		  }
+		  return cfg_name[0];
+	 }
+
+	 boolean setConfig(String cfg_str) {
+		  for (int i = 0; i < cfg_stations.length; i++) {
+				if (cfg_name[i].equals(cfg_str)) {
+					 for (int j = 0; j < antennas.size(); j++) {
+						  if (j < cfg_stations[i].length) {
+								vriLocation station = stations.get(cfg_stations[i][j]-1);
+								antennas.get(j).moveTo(station);
+						  }
+					 }
+					 return true;
+				} 
+		  }
+		  return false;
+	 }
+
+	 void stationLock() {
+		  int s = 0;
+		  double dist;
+
+		  for (int i = 0; i < antennas.size(); i++) {
+				vriLocation a = antennas.get(i);
+				double bestdist = Double.MAX_VALUE;
+				for (int j = 0; j < stations.size(); j++) {
+					 vriLocation station = stations.get(j);
+					 dist = vriLocation.dist2(a, station);
+					 if (dist < bestdist) {
+						  s = j;
+						  bestdist = dist;
+					 }
+				}
+				antennas.get(i).moveTo(stations.get(s));
+		  }
+	 }
+
+
+	 void report() {
+		  System.out.println ("\nObservatory report... "+full_name);
+		  for (int i = 0; i < antennas.size(); i++) {
+				System.out.println ("Antenna "+i+
+										  " NS = "+antennas.get(i).NS+
+										  " EW = "+antennas.get(i).EW+
+										  " UD = "+antennas.get(i).UD );
+		  }
+	 }
+
+}
+
+class vriBigObservatory extends vriObservatory {
+	 
+	 LatLonTelescopeList antennas;
+	 vriBigObservatory() {
+		  zoomer = false;
+	 }
+
+	 int numberOfAntennas() {
+		  return antennas.size();
+	 }
+
+	 vriArrDisp getArrDisp() {
+		  return new vriLatLonArrDisp(this);
+	 }
+
+	 vriDisplayCtrl getDispCtrl(vriArrDisp ad) {
+		  if (zoomer) {
+				return new vriDisplayZoomCtrl(ad);
+		  } else {
+				return new vriDisplayRotateCtrl(ad);
+		  }
+	 }
+
+	 vriUVcDisp getUVcDisp(vriAuxiliary aux) {
+		  return new vriUVcDisp(this, aux);
+	 }
+
+	 
+	 String defaultConfig() {
+		  return "Default";
+	 }
+
+	 boolean setConfig(String cfg_str) {
+		  return true;
+	 }
+
+	 ArrayList<Baseline> getBaselines() {
+		  return antennas.getBaselines();
+	 }
+
+	 boolean isAntennaInBaseline(int i, Baseline b) {
+		  return antennas.isAntennaInBaseline(i, b);
+	 }
+
+	 void selectNumAnt(int i) {
+	 }
+
+	 void stationLock() {
+
+	 }
+}
+
+
+class vriObservatoryManager {
+	 HashMap<String, vriObservatory> observatories;
+	 
+	 vriObservatoryManager()
+	 {
 		  double[] cs, cu;
 		  int[] csi;
 		  int num_antennas, num_stations;
@@ -258,32 +271,25 @@ class vriObservatoryManager {
 		  atca.ant_el_limit = 12.0 * Math.PI / 180.0;
 		  atca.ref = new vriLocation();
 		  atca.lengthScale = 20e3;
-		  try {
-				atca.components = nr.getNation("Australia").getComponents();
-		  } catch (NameNotFoundException e) {
-				System.err.println("Australia not found");
-				atca.components = null;
-		  }
 
 		  // Stations
 		  csi = new int[] {0, 2, 4, 6, 8, 10, 12, 14, 16, 32, 45, 64, 84, 98, 100, 
 								 102, 109, 110, 111, 112, 113, 128, 129, 140, 147, 148, 
 								 163, 168, 172, 173, 182, 189, 190, 195, 196, 388, 392};
-		  num_stations = csi.length;
-		  atca.stations = new vriLocation[num_stations];
-		  for (int i = 0; i < atca.stations.length; i++) {
+		  atca.stations = new ArrayList<vriLocation>();
+		  for (int i = 0; i < csi.length; i++) {
 				double space = (6000.0/392.0);
 				int incr = csi[i];
 				int ref = csi[34];
-				// atca.stations[i] = new vriLocation(incr, ref, space); 
-				atca.stations[i] = new vriLocation(0.0, (ref-incr)*space, 0.0);
-				// cs[0]=Stations1, cs[34]=Stations35
+				atca.stations.add(new vriLocation(0.0, (ref-incr)*space, 0.0));
 		  }
 
 		  // Track
 		  atca.trk = new vriTrack[2];
-		  atca.trk[0] = new vriTrack(atca.stations[0], atca.stations[34]);
-		  atca.trk[1] = new vriTrack(atca.stations[35], atca.stations[36]);
+		  atca.trk[0] = new vriTrack(atca.stations.get(0), 
+											  atca.stations.get(34));
+		  atca.trk[1] = new vriTrack(atca.stations.get(35),
+											  atca.stations.get(36));
 
 		  // Configurations
 		  atca.cfg_stations = new int[][] {
@@ -314,6 +320,9 @@ class vriObservatoryManager {
 
 		  num_antennas = atca.cfg_stations[0].length;
 		  atca.makeAntennas(num_antennas);
+		  for (vriLocation loc : atca.stations) {
+				atca.antennas.add(loc);
+		  }
 
 		  observatories.put(atca.menu_name, atca);
 		  // End ATCA
@@ -328,12 +337,6 @@ class vriObservatoryManager {
 		  natca.ant_diameter = 22.0;
 		  natca.ant_el_limit = 12.0 * Math.PI / 180.0;
 		  natca.ref = new vriLocation();
-
-		  try {
-				natca.components = nr.getNation("Australia").getComponents();
-		  } catch (NameNotFoundException e) {
-				natca.components = null;
-		  }
 
 		  // Stations
 		  cs = new double[] {0.0,   2.0,   4.0,   6.0,   8.0,  // CS01-05
@@ -354,23 +357,24 @@ class vriObservatoryManager {
 									0.0, 0.0, 0.0, 0.0, 2.0, 5.0, 7.0, 11.0,
 									14.0, 19.0, 23.0, 24.0 };
 
-		  num_stations = cs.length;
-		  natca.stations = new vriLocation[num_stations];
-		  for (int i = 0; i < natca.stations.length; i++) {
+		  natca.stations = new ArrayList<vriLocation>(cs.length);
+		  for (int i = 0; i < cs.length; i++) {
 				// 4 doubles form of constructor
 				double space = (6000.0/392.0);
 				double ref = cs[15];
 				double EWincr = cs[i];
 				double NSincr = cu[i];
-				// natca.stations[i] = new vriLocation(EWincr, NSincr, ref, space); 
-				natca.stations[i] = new vriLocation(NSincr*space, (ref-EWincr)*space, 0.0);
+				natca.stations.add(new vriLocation(NSincr*space, (ref-EWincr)*space, 0.0));
 		  }
 
-		  // Track
+		  // Track 
 		  natca.trk = new vriTrack[3];
-		  natca.trk[0] = new vriTrack(natca.stations[0], natca.stations[34]);
-		  natca.trk[1] = new vriTrack(natca.stations[35], natca.stations[36]);
-		  natca.trk[2] = new vriTrack(natca.stations[38], natca.stations[48]);
+		  natca.trk[0] = new vriTrack(natca.stations.get(0),
+												natca.stations.get(34));
+		  natca.trk[1] = new vriTrack(natca.stations.get(35),
+												natca.stations.get(36));
+		  natca.trk[2] = new vriTrack(natca.stations.get(38), 
+												natca.stations.get(48));
 
 		  // Configurations
 		  natca.cfg_stations = new int[][] {
@@ -417,6 +421,9 @@ class vriObservatoryManager {
 
 		  num_antennas = natca.cfg_stations[0].length;
 		  natca.makeAntennas(num_antennas);
+		  for (vriLocation loc : natca.stations) {
+				natca.antennas.add(loc);
+		  }
 
 		  observatories.put(natca.menu_name, natca);
 		  // End New ATCA
@@ -431,20 +438,20 @@ class vriObservatoryManager {
 		  wsrt.ref = new vriLocation();
 		  // Stations
 		  csi = new int[] {0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 19, 20, 37, 38};
-		  num_stations = csi.length;
-		  wsrt.stations = new vriLocation[num_stations];
-		  for(int i = 0; i < wsrt.stations.length; i++) {
+		  wsrt.stations = new ArrayList<vriLocation>();
+		  for(int i = 0; i < csi.length; i++) {
 				int incr = csi[i];
 				int ref = csi[10];
 				double space = -72.0;
-				// wsrt.stations[i] = new vriLocation(incr, ref, space);   
-				wsrt.stations[i] = new vriLocation(0.0, (double)(ref-incr)*space, 0.0);
+				wsrt.stations.add(new vriLocation(0.0, (double)(ref-incr)*space, 0.0));
 		  }
 
 		  // Track
 		  wsrt.trk = new vriTrack[2];
-		  wsrt.trk[0] = new vriTrack(wsrt.stations[10], wsrt.stations[11]);
-		  wsrt.trk[1] = new vriTrack(wsrt.stations[12], wsrt.stations[13]);
+		  wsrt.trk[0] = new vriTrack(wsrt.stations.get(10), 
+											  wsrt.stations.get(11));
+		  wsrt.trk[1] = new vriTrack(wsrt.stations.get(12), 
+											  wsrt.stations.get(13));
 
 		  // Configurations
 		  wsrt.cfg_stations = new int[][] {
@@ -457,6 +464,10 @@ class vriObservatoryManager {
 
 		  num_antennas = wsrt.cfg_stations[0].length;
 		  wsrt.makeAntennas(num_antennas); 
+		  for (vriLocation loc : wsrt.stations) {
+				wsrt.antennas.add(loc);
+		  }
+
 		  observatories.put(wsrt.menu_name, wsrt);
 		  // End WSRT
 
@@ -472,39 +483,32 @@ class vriObservatoryManager {
 		  merlin.ant_diameter = 25.0;
 		  merlin.ant_el_limit = 0.0 * Math.PI / 180.0;
 		  merlin.ref = new vriLocation();
-// 		  try {
-// 				merlin.components = nr.getNation("United Kingdom").getComponents();
-// 		  } catch (NameNotFoundException e) {
-// 				System.err.println("UK not found");
-// 				merlin.components = null;
-// 		  }
-		  Set<String> nations = nr.getNationNamesInRegion("Europe");
-		  System.err.println("# nations: "+nations.size());
-		  nations.remove("Russia");
-		  merlin.components = nr.getSelectedNations(nations);
-		  System.err.println("# nations: "+nations.size());
-		  
+
 		  // Stations
-		  num_stations = 6;
-		  merlin.stations = new vriLocation[num_stations];
+		  merlin.stations = new ArrayList<vriLocation>();
 
-		  merlin.stations[0] = vriLocation.fromKM(   0.0,        0.0,        0.0 ); // Jb
-		  merlin.stations[1] = vriLocation.fromKM( -98.663272, 180.934874,  13.0 ); // Cm
-		  merlin.stations[2] = vriLocation.fromKM(  11.670062, -24.278806,  88.0 ); // Da
-		  merlin.stations[3] = vriLocation.fromKM( -28.996605, -67.835530, 109.0 ); // Kn
-		  merlin.stations[4] = vriLocation.fromKM(  26.381173, -14.973939,  77.0 ); // Ta
-		  merlin.stations[5] = vriLocation.fromKM(-105.641049,  12.157448,  67.0 ); // De
+		  merlin.stations.add(vriLocation.fromKM(   0.0,        0.0,        0.0 )); // Jb
+		  merlin.stations.add(vriLocation.fromKM( -98.663272, 180.934874,  13.0 )); // Cm
+		  merlin.stations.add(vriLocation.fromKM(  11.670062, -24.278806,  88.0 )); // Da
+		  merlin.stations.add(vriLocation.fromKM( -28.996605, -67.835530, 109.0 )); // Kn
+		  merlin.stations.add(vriLocation.fromKM(  26.381173, -14.973939,  77.0 )); // Ta
+		  merlin.stations.add(vriLocation.fromKM(-105.641049,  12.157448,  67.0 )); // De
 
-		  for (int i = 0; i < num_stations; i++) 
-				merlin.stations[i].EW -= 60000.0;  // Centre the array
+		  for (int i = 0; i < merlin.stations.size(); i++) 
+				merlin.stations.get(i).EW -= 60000.0;  // Centre the array
 
 		  // Track
 		  merlin.trk = new vriTrack[5];
-		  merlin.trk[0] = new vriTrack(merlin.stations[0], merlin.stations[2]);
-		  merlin.trk[1] = new vriTrack(merlin.stations[0], merlin.stations[3]);
-		  merlin.trk[2] = new vriTrack(merlin.stations[0], merlin.stations[4]);
-		  merlin.trk[3] = new vriTrack(merlin.stations[0], merlin.stations[5]);
-		  merlin.trk[4] = new vriTrack(merlin.stations[5], merlin.stations[1]);
+		  merlin.trk[0] = new vriTrack(merlin.stations.get(0), 
+												 merlin.stations.get(2));
+		  merlin.trk[1] = new vriTrack(merlin.stations.get(0), 
+												 merlin.stations.get(3));
+		  merlin.trk[2] = new vriTrack(merlin.stations.get(0), 
+												 merlin.stations.get(4));
+		  merlin.trk[3] = new vriTrack(merlin.stations.get(0),
+												 merlin.stations.get(5));
+		  merlin.trk[4] = new vriTrack(merlin.stations.get(5),
+												 merlin.stations.get(1));
 
 		  // Configurations
 		  merlin.cfg_stations = new int[][] {
@@ -514,21 +518,21 @@ class vriObservatoryManager {
 		  merlin.cfg_name = new String[] {"default"};
 		  num_antennas = merlin.cfg_stations[0].length;
 		  merlin.makeAntennas(num_antennas);
+		  for (vriLocation loc : merlin.stations) {
+				merlin.antennas.add(loc);
+		  }
 
 		  observatories.put(merlin.menu_name, merlin);
 		  // End MERLIN
 
 		  vriBigObservatory evn = new vriBigObservatory();
 		  TelescopeReader tr = new TelescopeReader("evn.json");
-		  TelescopeList tl = tr.getTelescopes();
+		  LatLonTelescopeList tl = tr.getTelescopes();
 		  
 		  evn.zoomer = true; // override default
 		  evn.antennas = tl;
 		  evn.menu_name = "EVN";
 		  evn.full_name = "EVN";
-		  Set<String> evn_nations = nr.getNationNamesInRegion("Europe");
-		  evn_nations.remove("Russia");
-		  evn.components = nr.getSelectedNations(evn_nations);
 		  evn.lengthScale = 5e6;
 		  // FIXME
 		  evn.latitude = Math.toRadians(50);
@@ -558,22 +562,12 @@ class vriObservatoryManager {
 
 		  vriBigObservatory iya = new vriBigObservatory();
 		  TelescopeReader tr2 = new TelescopeReader("iya.json");
-		  TelescopeList tl2 = tr2.getTelescopes();
+		  LatLonTelescopeList tl2 = tr2.getTelescopes();
 		  
 		  iya.antennas = tl2;
 		  iya.menu_name = "IYA";
 		  iya.full_name = "International Year of Astronomy Array";
-		  Set<String> iya_nations = nr.getNationNamesInRegion("Europe");
-		  iya_nations.addAll(nr.getNationNamesInRegion("NorthAfrica"));
-		  iya_nations.addAll(nr.getNationNamesInRegion("Sub Saharan Africa"));
-		  iya_nations.addAll(nr.getNationNamesInRegion("Asia"));
-		  iya_nations.addAll(nr.getNationNamesInRegion("North America"));
-		  iya_nations.addAll(nr.getNationNamesInRegion("Latin America"));
-		  iya_nations.addAll(nr.getNationNamesInRegion("Antarctica"));
-		  iya_nations.addAll(nr.getNationNamesInRegion("Australia"));
 
-		  
-		  iya.components = nr.getSelectedNations(iya_nations);
 		  double r_earth = 6.378137e6; // m
 		  iya.lengthScale = 1.1*2*r_earth; // 10% bigger
 		  // FIXME

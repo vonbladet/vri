@@ -34,6 +34,16 @@ class FFTArray {
 		  data = new float[2*imsize*imsize];
 	 }
 
+	 static FFTArray fromSquareArray(SquareArray sa) {
+		  FFTArray result = new FFTArray(sa.size);
+		  for (int i=0; i<sa.size; i++) {
+				for (int j=0; j<sa.size; j++) {
+					 result.set(i, j, sa.get(i, j), 0);
+				}
+		  }
+		  return result;
+	 }
+
 	 public FFTArray(int i, float[] d) {
 		  imsize = i;
 		  data = d;
@@ -43,6 +53,8 @@ class FFTArray {
 		  data[j*imsize*2 + i*2] = real;
 		  data[j*imsize*2 + i*2 + 1] = im;
 	 }
+	 // y1*imsize*2 + x1*2 = real
+	 // y1*imsize*2 + x1*2 + 1 = imag
 }
 
 class SquareArray {
@@ -65,8 +77,6 @@ class SquareArray {
 	 public float get(int i, int j) {
 		  return data[j*size+i];
 	 }
-	 // y1*imsize*2 + x1*2 = real
-	 // y1*imsize*2 + x1*2 + 1 = imag
 }
 
 class vriUtils {
@@ -93,16 +103,16 @@ class vriUtils {
 		  float max = minmaxv[1];
 		  int mean=0;
 		  for (int i = 0; i < dat.length; i++) mean += dat[i];
-		  System.out.print("Limits = ["+min+","+max+"], sum = "+mean);
+		  // System.out.print("Limits = ["+min+","+max+"], sum = "+mean);
 		  mean /= (float) dat.length;
-		  System.out.print(", mean = "+mean);
+		  // System.out.print(", mean = "+mean);
 		  for (int i = 0; i < dat.length; i++) {
 				dat[i] = (dat[i] - mean) / (max - min);
 		  }
 		  minmaxv = vriUtils.minmax(dat);
 		  min = minmaxv[0];
 		  max = minmaxv[1];
-		  System.out.println(", new limits = ["+min+","+max+"]");
+		  // System.out.println(", new limits = ["+min+","+max+"]");
 	 }
 
 	 static public int getImsize(int imh, int imw) {
@@ -120,13 +130,13 @@ class vriUtils {
 	 }
 
 	 static int[] datToPix(float dat[], int imsize) {
-		  System.out.println("Converting (datToPix)");
+		  // System.out.println("Converting (datToPix)");
 
 		  // determine the scale of the data
 		  float[] minmaxv = minmax(dat);
 		  float min = minmaxv[0];
 		  float max = minmaxv[1];
-		  System.out.println("Data minimum="+min+", maximum="+max);
+		  // System.out.println("Data minimum="+min+", maximum="+max);
 
 		  int pix[] = new int[imsize * imsize];
 		  for (int y = 0; y < imsize; y++) {
@@ -144,7 +154,7 @@ class vriUtils {
 	 }
 
 	 static public void greyPix(int[] pix, int imh, int imw) {
-		  System.out.println("greyPix: "+imh+"x"+imw);
+		  // System.out.println("greyPix: "+imh+"x"+imw);
 		  if (pix != null) {
 				for (int i=0; i<imh*imw; i++) {
 					 int red   = (pix[i] & 0x00ff0000) >> 16;
@@ -160,7 +170,7 @@ class vriUtils {
 	 }
 
 	 static public float[] pixToDat(int[] pix, int imh, int imw, int imsize) {
-		  System.out.println("Converting (pixToDat): "+imh+","+imw+","+imsize);
+		  // System.out.println("Converting (pixToDat): "+imh+","+imw+","+imsize);
 		  if (pix == null) {
 				System.err.println("pixToDat: pix empty");
 				return new float[]{(float)0.0};
@@ -179,9 +189,9 @@ class vriUtils {
 					 count++;                                       
 				}
 		  }
-		  System.out.print("Edge sum = "+mean);
+		  //		  System.out.print("Edge sum = "+mean);
 		  mean /= (float)count;
-		  System.out.println("; edge mean = "+mean);
+		  // System.out.println("; edge mean = "+mean);
 		  // for now use full complex transform
 		  float dat[] = new float[imsize*2*imsize];
 		  for (int h = 0; h < imh; h++) {
@@ -197,7 +207,7 @@ class vriUtils {
 
 	 static int[] fftToPix(float fft[], String type, int imsize) {
 		  double value;        // Quantity that is plotted to a pixel
-		  System.out.println("Converting (fftToPix)");
+		  // System.out.println("Converting (fftToPix)");
 
 		  // determine the scale of the data (use a forced -180:180 range for phase
 		  float[] minmaxv = minmax(fft);
@@ -207,7 +217,7 @@ class vriUtils {
 				min = (float)(-Math.PI / 2.0);
 				max = (float)( Math.PI / 2.0);
 		  }
-		  System.out.println("FFT minumum="+min+", maximum="+max);
+		  // System.out.println("FFT minumum="+min+", maximum="+max);
 
 		  int pix[] = new int[imsize * imsize];
 		  for (int y = 0; y < imsize; y++) {
@@ -254,12 +264,12 @@ class vriUtils {
 
 	 static float[] fft(float dat[], int imsize) {
 		  int[] nn = new int[] {imsize, imsize};
-		  System.out.print("Doing forward transform... ");
+		  // System.out.print("Doing forward transform... ");
 		  float[] fft = new float[dat.length];
 		  for(int i = 0; i < dat.length; i++) 
 				fft[i] = dat[i];
 		  Fourier.fourn(fft, nn, 2, 1);
-		  System.out.println("done.");
+		  // System.out.println("done.");
 		  return fft;
 	 }
 
@@ -283,6 +293,27 @@ class vriUtils {
 		  return fft2;
 	 }
 
+	 static public float[] dummyApplyUVc2(float cov[], float fft[], int imsize) {
+		  // Pretends to apply the UV coverage (from the UVcDisp class) to the FFT
+		  // (the fft[] array).
+
+		  // Get square array of floating point numbers with the taper
+		  // function on pixels with UV coverage and 0 on those without
+		  float[] fft2 = new float[2*imsize*imsize];
+		  for(int y = 0; y < imsize; y++) {
+				for(int x = 0; x < imsize; x++) {
+					 int x1, y1;
+					 x1 = x - imsize/2; y1 = y - imsize/2;
+					 if (x1 < 0) x1 += imsize;
+					 if (y1 < 0) y1 += imsize;
+					 fft2[y1*imsize*2 + x1*2] =  fft[y1*imsize*2 + x1*2];  // Real
+					 fft2[y1*imsize*2 + x1*2 + 1] = fft[y1*imsize*2 + x1*2 + 1];  // Imaginary
+				}
+		  }
+		  return fft2;
+	 }
+
+
 	 // applyUVc from vriUVpDisp
 	 static public float[] applyUVc(float cov[], float fft[], int imsize) {
 		  // Applies the UV coverage (from the UVcDisp class) to the FFT
@@ -294,11 +325,14 @@ class vriUtils {
 		  for (int y = 0; y < imsize; y++) {
 				for (int x = 0; x < imsize; x++) {
 					 int x1, y1;
-					 x1 = x - imsize/2; y1 = y - imsize/2;
+					 x1 = x - imsize/2; 
+					 y1 = y - imsize/2;
 					 if (x1 < 0) x1 += imsize;
 					 if (y1 < 0) y1 += imsize;
-					 fft2[y1*imsize*2 + x1*2] =  fft[y1*imsize*2 + x1*2] * cov[y*imsize+x];  // Real
-					 fft2[y1*imsize*2 + x1*2 + 1] = fft[y1*imsize*2 + x1*2 + 1]*cov[y*imsize+x];  // Imaginary
+					 fft2[y1*imsize*2 + x1*2] =  
+						  fft[y1*imsize*2 + x1*2] * cov[y*imsize+x];  // Real
+					 fft2[y1*imsize*2 + x1*2 + 1] = 
+						  fft[y1*imsize*2 + x1*2 + 1]*cov[y*imsize+x];  // Imaginary
 				}
 		  }
 		  return fft2;
@@ -316,12 +350,21 @@ class vriGreyDisp extends vriDisplay {
 	 String type = "ampl";    // Used to select real/imag/amp/phase display
 	 double fullScale = 73000.0;
 	 String unit = "lobster";
+	 boolean hasAxes = false;
+	 String[] axesLabels = new String[] {"x", "y"};
 
 	 public vriGreyDisp(Applet app) {
 		  super();
 		  applet = app;
 	 }
 
+	 void setHasAxes(boolean b) {
+		  hasAxes = b;
+	 }
+	 
+	 boolean getHasAxes() {
+		  return hasAxes;
+	 }
 
 	 void setUnit(String u){
 		  unit = u;
@@ -347,6 +390,46 @@ class vriGreyDisp extends vriDisplay {
 		  paintRealScale(g2, r, str, m);
 	 }
 
+	 void paintAxes(Graphics g) {
+		  Graphics2D g2 = (Graphics2D) g;
+		  Color oldColor = g2.getColor();
+		  g2.setColor(Color.orange);
+		  int imh = img.getHeight(this);
+		  int imw = img.getWidth(this);
+		  int offset = 10;
+		  g2.draw(new Line2D.Float((float)offset, imh/2.0f, 
+											(float)imw-offset, imh/2.0f));
+		  g2.draw(new Line2D.Float(imw/2.0f, (float)offset, 
+											imw/2.0f, (float)imh-offset));
+		  // Arrow heads
+		  int arrowWidth = 6;
+		  int arrowHeight = 10;
+		  Font font = g2.getFont();
+		  FontRenderContext frc = g2.getFontRenderContext();
+		  // top of y-axis
+		  g2.draw(new Line2D.Float(imw/2.0f, (float)offset,
+											imw/2.0f+arrowWidth, (float)offset+arrowHeight));
+		  g2.draw(new Line2D.Float(imw/2.0f, (float)offset,
+											imw/2.0f-arrowWidth, (float)offset+arrowHeight));
+		  // and text for y-axis
+		  Rectangle2D bounds = font.getStringBounds(axesLabels[1], frc);
+		  g2.drawString(axesLabels[1], 
+							 imw/2.0f+(float)arrowWidth+2.0f, 
+							 (float)offset+(float)bounds.getHeight()/2.0f);
+		  // right of x-axis
+		  g2.draw(new Line2D.Float((float)imh-offset, imh/2.0f,
+											(float)imh-offset-arrowHeight, imh/2.0f+arrowWidth));
+		  g2.draw(new Line2D.Float((float)imh-offset, imh/2.0f,
+											(float)imh-offset-arrowHeight, imh/2.0f-arrowWidth));
+		  // text for x-axis
+		  g2.drawString(axesLabels[0], 
+							 (float)imh-(float)offset-(float)bounds.getWidth(), 
+							 imw/2.0f+(float)bounds.getHeight()/2.0f+(float)arrowWidth+2.0f);
+
+
+		  g2.setColor(oldColor);
+	 }
+
 	 public void paint(Graphics g) {
 		  Graphics2D g2 = (Graphics2D) g;
 		  Rectangle r = getBounds();
@@ -363,6 +446,12 @@ class vriGreyDisp extends vriDisplay {
 				a.preConcatenate(AffineTransform.getTranslateInstance(getWidth()/2.0,
 																						getHeight()/2.0));
 				g2.drawImage(img, a, applet);
+				if (hasAxes) {
+					 // System.err.println("Has axes");
+					 paintAxes(g);
+				} else {
+					 //System.err.println("Not has axes");
+				}
 				paintScale(g);
 		  }
 		  plotFocus(g);
@@ -389,14 +478,14 @@ class vriGreyDisp extends vriDisplay {
 	 public int[] imgToPix(Image img) 
 	 throws EmptyImageException
 	 {
-		  System.out.println("Converting (imgToPix)");
+		  // System.out.println("Converting (imgToPix)");
 
 		  if (img == null) {
 				throw new EmptyImageException();
 		  } 
 		  int imh = img.getHeight(this);
 		  int imw = img.getWidth(this);
-		  System.out.println("Got "+this+"image: size = "+imw+"x"+imh);
+		  // System.out.println("Got "+this+"image: size = "+imw+"x"+imh);
 		  int pix[] = new int[imh*imw];
 		  try {
 				PixelGrabber pg = new PixelGrabber(img, 0, 0, imw, imh, pix, 0, imw);
@@ -408,8 +497,8 @@ class vriGreyDisp extends vriDisplay {
 	 }
 
 	 public void pixToImg(int pix[], int imsize) {
-		  System.out.println("Converting (pixToImg): "+
-									imsize+"x"+imsize);
+		  //System.out.println("Converting (pixToImg): "+
+		  // imsize+"x"+imsize);
 
 		  img = applet.createImage(new MemoryImageSource(imsize, imsize, pix, 0, imsize));
 		  repaint();
