@@ -20,7 +20,7 @@ enum Scale {
 }
 
 
-abstract class vriUVcDisp extends vriDisplay 
+class vriUVcDisp extends vriDisplay 
 implements PropertyChangeListener 
 {
 	 String unit = "lambda";
@@ -34,30 +34,35 @@ implements PropertyChangeListener
 	 Scale plotScale;
 	 AffineTransform aff, defaultTransform;
 	 SquareArray uvcov;
+	 int selectedAntenna;
+	 int uvCoverageSize;
 
 	 vriUVcDisp(vriObservatory o, vriAuxiliary a) {
 		  super();
+		  selectedAntenna = -1;
 		  aux = a;
 		  setObservatory(o);
 		  double lengthScale = obs.getLengthScale(); // in m
 		  double scale = roundUpPower(lengthScale/getReferenceLambda());
 		  aff = new AffineTransform();
 		  defaultTransform = (AffineTransform) aff.clone();
-		  System.err.println("Default scale: "+scale);
-		  System.err.println("Default lambda: "+getReferenceLambda());
+		  // System.err.println("Default scale: "+scale);
+		  // System.err.println("Default lambda: "+getReferenceLambda());
 		  arrayScale = obs.getLengthScale()/getReferenceLambda();
-		  spaceScale = scale; // just in case it isn't taken care of.
+		  spaceScale = scale; 
 		  earthScale = 2*r_earth/getReferenceLambda(); // full width
 		  plotScale = Scale.SPACE;
 		  propChanges = new PropertyChangeSupport(this);
 	 }
 
 	 public void setObservatory(vriObservatory aobs) {
+		  System.err.println("vriUVcDisp: setting observatory");
 		  obs = aobs;
 		  double lengthScale = obs.getLengthScale(); // in m
 		  arrayScale = lengthScale/getLambda();
 		  earthScale = 2*r_earth/getLambda();
 		  repaint();
+		  uvCoverage(); // also fires property change
 	 }
 	 
 	 public void setPlotScale(Scale ps) {
@@ -79,7 +84,6 @@ implements PropertyChangeListener
 	 double getReferenceLambda() {
 		  return c/4800.0;
 	 }
-
 
 	 void paintScale(Graphics g) {
 		  Graphics2D g2 = (Graphics2D) g;
@@ -109,25 +113,28 @@ implements PropertyChangeListener
 		  return uvcov;
 	 }
 
-	 public void uvCoverage(int size) {
+	 public void uvCoverage() {
 		  
 		  Rectangle r = getBounds();
-		  uvcov = new SquareArray(size);
+		  uvcov = new SquareArray(uvCoverageSize);
 
-		  // spacescale is for full screen
-		  double s = (size) / (getLambda() * spaceScale);
-		  System.err.println("spaceScale: " + spaceScale);
-		  System.err.println("arrayScale: " + arrayScale);
-		  System.err.println("s: "+s);
-		  // Plot baselines
-		  Baseline[] baselines = obs.getBaselines();
-		  System.err.println("Obs.baselines length: "+baselines.length);
-		  for (int i = 0; i<baselines.length; i++) {
-				Baseline bl = baselines[i];
-				applyUV(bl, aux.ha1, aux.ha2, aux.dec, s, size, uvcov);
+		  double s = (uvCoverageSize) / (getLambda() * spaceScale);
+		  System.err.println("vriUVcDisp: uvCoverageSize: " + uvCoverageSize);
+		  System.err.println("vriUVcDisp: earthScale: " + earthScale);
+		  System.err.println("vriUVcDisp: spaceScale: " + spaceScale);
+		  System.err.println("vriUVcDisp: arrayScale: " + arrayScale);
+		  System.err.println("vriUVcDisp: s: "+s);
+		  // System.err.println("vriUVcDisp: aux.dec: "+aux.dec);
+		  ArrayList<Baseline> baselines = obs.getBaselines();
+		  System.err.println("vriUVcDisp: Obs.antennas length: "+
+									obs.numberOfAntennas());
+		  System.err.println("vriUVcDisp: Obs.baselines length: "+
+									baselines.size());
+		  for (Baseline bl : baselines) {
+				applyUV(bl, aux.ha1, aux.ha2, aux.dec, s);
 		  } 
 		  boolean nonzero = false;
-		  for (int i=0; i<size*size; i++) {
+		  for (int i=0; i<uvCoverageSize*uvCoverageSize; i++) {
 				if (uvcov.data[i] != 0) {
 					 nonzero=true;
 					 break;
@@ -136,70 +143,74 @@ implements PropertyChangeListener
 		  if (!nonzero) {
 				System.err.println("uvcov is zero");
 		  }
-		  System.err.println("UV coverage change firing");
+		  System.err.println("vriUVcDisp: UV coverage change firing");
 		  propChanges.firePropertyChange("uvcov", null, uvcov);
+		  // firePropertyChange("uvcov", null, uvcov);
 	 }  // uvCoverage()
 
 	 public void applyUV(Baseline bl,
 								double h1, double h2,
-								double dec, double s,
-								int size, SquareArray uvcov) {
+								double dec, double s) {
 
 		  //FIXME : I don't understand uvscale
 		  //double uvscale = (double) size / 200.0;
 		  double uvscale = 1;
 
-		  ArrayList<UV> uvTrack = bl.makeUVTrack(h1, h2, dec, s);
+		  ArrayList<UV> uvTrack = bl.makeUVPoints(h1, h2, dec, s);
 
-		  for (int i=0; i<uvTrack.size(); i++) {
-				UV uv = uvTrack.get(i);
+		  int size = uvcov.size;
+		  for (UV uv : uvTrack) {
  				int uc = (int)(uv.u*uvscale);
  				int vc = (int)(uv.v*uvscale);
-				if (uc > -size/2 && uc < size/2 && vc > -size/2 && vc < size/2) {
+				if (uc > -size/2 && uc < size/2 && 
+					 vc > -size/2 && vc < size/2) {
 					 uvcov.set(uc+size/2, vc+size/2, 1);
 					 uvcov.set(-uc+size/2, -vc+size/2, 1);
 				}
 		  }   
 	 }  
 	  
-	 abstract boolean isSelected(Baseline bl);
+	 boolean isSelected(Baseline bl) {
+		  return obs.isAntennaInBaseline(selectedAntenna, bl);
+	 }
+
+	 public void propertyChange(PropertyChangeEvent e) {
+		  String pname = e.getPropertyName();
+		  if (pname=="active") {
+				selectedAntenna = (Integer) e.getNewValue();
+				System.err.println("vriUVcDisp: Got active: "+selectedAntenna);
+				if (uvCoverageSize != 0) {
+					 uvCoverage();
+				}
+				repaint();
+		  } else if (pname=="fftsize") {
+				uvCoverageSize = (Integer)e.getNewValue();
+				System.err.println("vriUVcDisp: Got fftsize: "+uvCoverageSize);
+				if (uvCoverageSize>0) {
+					 uvCoverage();
+				}
+		  } else if (pname=="this") {
+				System.err.println("vriUVcDisp: Got a this");				
+		  } else {
+				System.err.println("vriUVcDisp: Got propertyChange for "+
+										 e.getPropertyName()+
+										 "; ignoring it");
+		  }
+	 }
 
 	 public void plotBaseline(Baseline bl,
 									  double h1, double h2, double dec, 
 									  double s, Graphics g) {
 		  Graphics2D g2 = (Graphics2D) g;
 
-		  ArrayList<UV> uvTrack = bl.makeUVTrack(h1, h2, dec, s);
+		  GeneralPath uvTrack = bl.makeUVGeneralPath(h1, h2, dec, s);
 
 		  if (isSelected(bl)) {
 				g2.setColor(Color.blue);
 		  } else {
 				g2.setColor(Color.red);
 		  }
-
-		  if (uvTrack.size()==1) {
-				UV uv = uvTrack.get(0);
-				g2.draw(new Rectangle((int)uv.u, (int)uv.v, 1, 1));
-				g2.draw(new Rectangle((int)-uv.u, (int)-uv.v, 1, 1));
-		  } else {
-				int xs[] = new int[uvTrack.size()];
-				int ys[] = new int[uvTrack.size()];
-				GeneralPath path1 = new GeneralPath(GeneralPath.WIND_EVEN_ODD, xs.length);
-				GeneralPath path2 = new GeneralPath(GeneralPath.WIND_EVEN_ODD, xs.length);
-				
-				UV uv = uvTrack.get(0);
-				path1.moveTo((int)uv.u, (int)uv.v);
-				path2.moveTo((int)-uv.u, (int)-uv.v);
-				for (int i=1; i<uvTrack.size(); i++) {
-					 uv = uvTrack.get(i);
-					 path1.lineTo( (int)uv.u, (int)uv.v);
-					 path2.lineTo( (int)-uv.u, (int)-uv.v);
-				}   
-				//Rectangle r = path1.getBounds();
-				//System.err.println(r.x+ " "+r.width+" "+r.y+" "+r.height);
-				g2.draw(path1);
-				g2.draw(path2);
-		  }
+		  g2.draw(uvTrack);
 		  g2.setColor(Color.red);
 	 }  
 
@@ -236,12 +247,12 @@ implements PropertyChangeListener
 		  // Calculate the metres-to-wavelengths-to-pixels conversion scale factor
 
 		  double s = getActualScale();
-		  System.err.println("Actual scale: "+s);
+		  // System.err.println("Actual scale: "+s);
 		  g2.translate(getWidth()/2.0, getHeight()/2.0);
 
 		  if (plotScale == Scale.EARTH || plotScale == Scale.ARRAY) {
 				double uv_earth = s*2*r_earth;
-				System.err.println("uv_earth: "+uv_earth);
+				// System.err.println("uv_earth: "+uv_earth);
 				g2.setColor(new Color(0.0f, 0.0f, 1.0f, 0.5f));
 				g2.fill(new Ellipse2D.Double(-uv_earth, -uv_earth, 2*uv_earth, 2*uv_earth));
 		  
@@ -251,12 +262,11 @@ implements PropertyChangeListener
 		  tx = ty = (int) (-s * obs.ant_diameter);
 		  tw = th = (int) (s * 2.0 * obs.ant_diameter);
 		  g2.fillOval(tx, ty, tw, th);
-		  System.err.println(String.format("UVc.Aux parameters: ha1 %f ha2 %f dec %f",  
-													  aux.ha1, aux.ha2, aux.dec));
+		  // System.err.println(String.format("UVc.Aux parameters: ha1 %f ha2 %f dec %f",  
+		  // aux.ha1, aux.ha2, aux.dec));
 
-		  Baseline[] baselines = obs.getBaselines();
-		  for  (int i = 0; i<baselines.length; i++) {
-				Baseline bl = baselines[i];
+		  ArrayList<Baseline> baselines = obs.getBaselines();
+		  for  (Baseline bl : baselines) {
 				plotBaseline(bl, aux.ha1, aux.ha2, aux.dec, s, g);
 		  } 
 		  g2.translate(-getWidth()/2.0, -getHeight()/2.0);
@@ -264,60 +274,4 @@ implements PropertyChangeListener
 		  plotFocus(g);
 	 }  
 }
-
-class vriNSEWUVcDisp extends vriUVcDisp 
-{
-	 vriLocation selectedAnt;
-
-	 public vriNSEWUVcDisp(vriObservatory o, vriAuxiliary a) {
-		  super(o, a);
-		  selectedAnt = null;
-	 }
-
-	 public void propertyChange(PropertyChangeEvent e) {
-		  String s = e.getPropertyName();
-		  if (s=="active") {
-				int i = (Integer) e.getNewValue();
-				vriSmallObservatory o = (vriSmallObservatory) obs;
-				if (i>0) {
-					 selectedAnt = (vriLocation) o.antennas[i];
-				} else {
-					 selectedAnt = null;
-				}
-				repaint();
-		  } else {
-				System.err.println("** UVcDisp: Got propertyChange for "+e.getPropertyName());
-		  }
-	 }
-
-	 boolean isSelected(Baseline bl) {
-		  NSEWBaseline nbl = (NSEWBaseline) bl;
-		  return selectedAnt != null && (selectedAnt==nbl.ant1 || selectedAnt==nbl.ant2);
-	 }
-}
-
-class vriLatLonUVcDisp extends vriUVcDisp 
-{
-	 LatLon selectedAnt;
-
-	 public vriLatLonUVcDisp(vriObservatory o, vriAuxiliary a) {
-		  super(o, a);
-		  selectedAnt = null;
-	 }
-
-	 public void propertyChange(PropertyChangeEvent e) {
-		  String s = e.getPropertyName();
-		  if (s=="active") {
-				selectedAnt = (LatLon) e.getNewValue();
-				repaint();
-		  }
-	 }
-
-	 boolean isSelected(Baseline bl) {
-		  LatLonBaseline nbl = (LatLonBaseline) bl;
-		  return selectedAnt != null && (selectedAnt==nbl.ant1 || selectedAnt==nbl.ant2);
-	 }
-}
-
-
 

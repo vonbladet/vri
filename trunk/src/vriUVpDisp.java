@@ -12,29 +12,70 @@ import nl.jive.utils.*;
 import java.applet.Applet;
 import java.beans.*;
 
-class vriUVpDisp extends vriGreyDisp {
+class vriUVpDisp extends vriGreyDisp 
+	 implements PropertyChangeListener
+{
 	 FFTArray fft;
+	 SquareArray uvcov;	 
 
 	 public vriUVpDisp(Applet app) {
 		  super(app);
 		  setUnit("lambda");
 		  message = new String("No current transform");
+		  // hasAxes = true;
+		  setHasAxes(true);
+		  axesLabels = new String[] {"U", "V"};
+		  propChanges = new PropertyChangeSupport(this);
 	 }
 
 	 void setFullScale(double s){
-		  // factor of a half since the UV plane is both positive 
-		  // and negative
-		  // No!
-		  // the width of the screen is still the width of the screen
 		  fullScale = s;
+		  repaint();
+	 }
+
+	 public void propertyChange(PropertyChangeEvent e) {
+		  // uvcov and fft are for UVpConvDisp
+		  // dat is from the source image, for UVpDisp
+		  String pname = e.getPropertyName();
+		  if (pname=="uvcov") {
+				System.err.println("vriUVpDisp: "+
+										 "UV coverage changed - updating convolution");
+				uvcov =  (SquareArray) e.getNewValue(); 
+				if (fft!=null) {
+					 applyUVc(uvcov, fft);
+				} else {
+					 System.err.println("vriUVpDisp: Null fft");
+				}
+		  } else if (pname=="fft") {
+				System.err.println("vriUVp(Conv)Disp: UVp fft changed");
+				fft = (FFTArray) e.getNewValue();
+				if (uvcov!=null) {
+					 applyUVc(uvcov, fft);
+				} else {
+					 System.err.println("vriUVpDisp: Null uvcov");
+				}
+		  } else if (pname=="dat") {
+				System.err.println("vriUVpDisp: img disp dat changed");
+				FFTArray dat = (FFTArray) e.getNewValue();
+				if (dat != null) {
+					 fft(dat);
+				} else {
+					 System.err.println("vriUVpDisp: got null dat!");
+				}
+		  } else {
+				System.err.println("vriUVpDisp got propertyChange for "+
+										 e.getPropertyName()+
+										 " ; ignoring it.");
+		  }
 	 }
 
 
 	 public void fft(FFTArray dat) {
 		  if (dat.data == null) {
-				System.err.println("UVpDisp dat not set");
+				System.err.println("vriUVpDisp: dat not set");
 				return;
 		  }
+		  System.err.println("vriUVpDisp: Fourier transforming...");
 		  message = new String("Fourier transforming...");
 		  repaint();
 		  fft = new FFTArray(dat.imsize, vriUtils.fft(dat.data, dat.imsize));
@@ -53,18 +94,15 @@ class vriUVpDisp extends vriGreyDisp {
 	 public void applyUVc(SquareArray cov, FFTArray fft0) {
 		  // Applies the UV coverage (from the UVcDisp class) to the FFT
 		  // (the fft[] array).
-
-		  if (fft0.data == null) {
-				System.err.println("applyUVc: fft[] array empty");
-				return;
-		  }
 		  message = new String("Applying UV coverage...");
 		  repaint();
+		  System.err.println("vriUVpDisp: Applying UV coverage...");
 
+		  //float a[] = vriUtils.dummyApplyUVc(cov.data, fft0.data, fft0.imsize);
+		  //float a[] = vriUtils.dummyApplyUVc2(cov.data, fft0.data, fft0.imsize);
 		  float a[] = vriUtils.applyUVc(cov.data, fft0.data, fft0.imsize);
-		  fft = new FFTArray(fft0.imsize, a);
-
-		  fftToImg(fft);
-		  propChanges.firePropertyChange("fft", null, fft);
+		  FFTArray fftconv = new FFTArray(fft0.imsize, a);
+		  fftToImg(fftconv);
+		  propChanges.firePropertyChange("fftconv", null, fftconv);
 	 }
 }
