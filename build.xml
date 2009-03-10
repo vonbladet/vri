@@ -1,0 +1,51 @@
+<project name="vri" basedir="." default="compile">
+  <property name="src.dir" value="src"/>
+  <property name="bin.dir" value="bin"/>
+  <property name="jar.dir" value="jar"/>
+  <property name="build.compiler" value="javac1.5"/>
+  <path id="classpath">
+	 <pathelement path="/jop46_0/small/JavaBin"/>
+  </path>
+
+  <target name="clean">
+    <delete dir="build"/>
+  </target>
+  <target name="compile">
+	 <javac srcdir="/jop46_0/small/Earth" destdir="${bin.dir}"
+			  debug="true" debuglevel="lines,vars,source"
+			  target="1.5">
+		<classpath refid="classpath"/>
+	 </javac>
+    <javac srcdir="${src.dir}" destdir="${bin.dir}"
+			  debug="true" debuglevel="lines,vars,source"
+			  target="1.5">
+		<compilerarg value="-Xlint:all,-serial"/>
+		<classpath refid="classpath"/>
+	 </javac>
+  </target>
+  <target name="jar">
+    <jar destfile="${jar.dir}/vrijr.jar">
+		<fileset dir="${bin.dir}"/>
+		<fileset dir="/jop46_0/small/JavaBin"/>
+		<fileset dir="resources"/>
+      <manifest>
+        <attribute name="Main-Class" value="nl.jive.vri.vrijr"/>
+      </manifest>
+    </jar>
+    <jar destfile="${jar.dir}/vri.jar">
+		<fileset dir="${bin.dir}"/>
+		<fileset dir="/jop46_0/small/JavaBin"/>
+		<fileset dir="resources"/>
+      <manifest>
+        <attribute name="Main-Class" value="nl.jive.vri.vri"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="run">
+    <java jar="${jar.dir}/vri.jar" fork="true"/>
+  </target>
+  <target name="runjr">
+    <java jar="${jar.dir}/vrijr.jar" fork="true"/>
+  </target>
+</project>
