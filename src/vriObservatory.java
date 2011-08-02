@@ -551,7 +551,7 @@ class vriObservatoryManager {
 		  // Effelsburg, WSRT, Torun
 		  // chalmers.se = Onsala
 		  // bkg.bund.de = Wettzell(!)
-		  // Mets‰hovi
+		  // Mets√§hovi
 		  // Also, Jodrell and Cambridge, with Kn as a possible extra if we feel Merlincasty
 		  
 
