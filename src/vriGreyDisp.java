@@ -19,6 +19,7 @@ import java.awt.font.*;
 import java.net.*;
 import javax.swing.*;
 import nl.jive.utils.*;
+import edu.emory.mathcs.jtransforms.fft.*;
 
 //####################################################################//
 
@@ -178,8 +179,8 @@ class vriUtils {
         int count = 0;
         for (int h = 0; h < imh; h++) {
             int inc = imw-1;
-            if(h == 0 || h == (imh-1)) inc = 1;
-            for(int w = 0; w < imw; w += inc) {
+            if (h == 0 || h == (imh-1)) inc = 1;
+            for (int w = 0; w < imw; w += inc) {
                 mean += (float)(pix[h*imw + w] & 0x000000ff);  
                 // Assume already greyscale -
                 // i.e. red = green = blue
@@ -187,12 +188,10 @@ class vriUtils {
             }
         }
         mean /= (float)count;
-        // System.out.println("; edge mean = "+mean);
-        // for now use full complex transform
         float dat[] = new float[imsize*2*imsize];
         for (int h = 0; h < imh; h++) {
             for (int w = 0; w < imw; w++) {
-                dat[(imsize/2+h-imh/2)*imsize*2 + (imsize/2+w-imw/2)*2] = 
+                dat[(imsize/2 + h - imh/2)*imsize*2 + (imsize/2+w-imw/2)*2] = 
                     (pix[h*imw + w] & 0x000000ff)-mean;
             }
         }
@@ -257,24 +256,25 @@ class vriUtils {
     // and a stub remains there
 
 
-    static float[] fft(float dat[], int imsize) {
-        int[] nn = new int[] {imsize, imsize};
-        // System.out.print("Doing forward transform... ");
+    static float[] fft(float dat[], int imsize) { 
+        System.out.print("vriUtils: Doing NEW forward transform... ");
         float[] fft = new float[dat.length];
-        for(int i = 0; i < dat.length; i++) 
+        for(int i = 0; i < dat.length; i++) {
             fft[i] = dat[i];
-        Fourier.fourn(fft, nn, 2, 1);
-        // System.out.println("done.");
+        }
+        FloatFFT_2D f = new FloatFFT_2D(imsize, imsize);
+        f.complexForward(fft);
         return fft;
     }
 
     // 2011-08-02 small@jive.nl: factoring invfft to here for symmetry and convenience.
     static float[] invfft(FFTArray fft, int imsize) {
-        int nn[] = {imsize, imsize};
         float[] dat = new float[fft.data.length];
-        for (int i = 0; i < dat.length; i++) 
+        for (int i = 0; i < dat.length; i++) {
             dat[i] = fft.data[i]/imsize/imsize;
-        Fourier.fourn(dat, nn, 2, -1);
+        }
+        FloatFFT_2D f = new FloatFFT_2D(imsize, imsize);
+        f.complexInverse(dat, false);
         return dat;
     }
 
