@@ -69,7 +69,6 @@ class vriUVpDisp extends vriGreyDisp
         }
     }
 
-
     public void fft(FFTArray dat) {
         if (dat.data == null) {
             System.err.println("vriUVpDisp: dat not set");
@@ -78,7 +77,7 @@ class vriUVpDisp extends vriGreyDisp
         System.err.println("vriUVpDisp: Fourier transforming...");
         message = new String("Fourier transforming...");
         repaint();
-        fft = new FFTArray(dat.imsize, vriUtils.fft(dat.data, dat.imsize));
+        fft = dat.fft();
         fftToImg(fft);
         propChanges.firePropertyChange("fft", null, fft);
     }
@@ -92,16 +91,11 @@ class vriUVpDisp extends vriGreyDisp
 
     // sets fft if this is the convolved class
     public void applyUVc(SquareArray cov, FFTArray fft0) {
-        // Applies the UV coverage (from the UVcDisp class) to the FFT
-        // (the fft[] array).
         message = new String("Applying UV coverage...");
         repaint();
         System.err.println("vriUVpDisp: Applying UV coverage...");
 
-        //float a[] = vriUtils.dummyApplyUVc(cov.data, fft0.data, fft0.imsize);
-        //float a[] = vriUtils.dummyApplyUVc2(cov.data, fft0.data, fft0.imsize);
-        float a[] = vriUtils.applyUVc(cov.data, fft0.data, fft0.imsize);
-        FFTArray fftconv = new FFTArray(fft0.imsize, a);
+        FFTArray fftconv = fft0.multiply(cov);
         fftToImg(fftconv);
         propChanges.firePropertyChange("fftconv", null, fftconv);
     }

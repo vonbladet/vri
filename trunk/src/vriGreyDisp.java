@@ -20,6 +20,7 @@ import java.net.*;
 import javax.swing.*;
 import nl.jive.utils.*;
 import edu.emory.mathcs.jtransforms.fft.*;
+import java.util.Arrays;
 
 //####################################################################//
 
@@ -54,6 +55,52 @@ class FFTArray {
         data[j*imsize*2 + i*2] = real;
         data[j*imsize*2 + i*2 + 1] = im;
     }
+
+    public float getReal(int i, int j) {
+        return data[j*imsize*2 + i*2];
+    }
+    
+    public float getImag(int i, int j) {
+        return data[j*imsize*2 + i*2 + 1];
+    }
+
+    public FFTArray fft() {
+        // System.out.print("FFTArray: Doing NEW forward transform... ");
+        float[] fft = Arrays.copyOf(data, data.length);
+        FloatFFT_2D f = new FloatFFT_2D(imsize, imsize);
+        f.complexForward(fft);
+        return new FFTArray(imsize, fft);
+    }
+
+    public FFTArray invfft() {
+        float[] dat2 = new float[data.length];
+        for (int i = 0; i < dat2.length; i++) {
+            dat2[i] = data[i]/imsize/imsize;
+        }
+        FloatFFT_2D f = new FloatFFT_2D(imsize, imsize);
+        f.complexInverse(dat2, false);
+        return new FFTArray(imsize, dat2);
+    }
+
+    public FFTArray multiply(SquareArray covArray) {
+        float[] cov = covArray.data;
+        float[] fft2 = new float[2*imsize*imsize];
+        for (int y = 0; y < imsize; y++) {
+            for (int x = 0; x < imsize; x++) {
+                int x1, y1;
+                x1 = x - imsize/2; 
+                y1 = y - imsize/2;
+                if (x1 < 0) x1 += imsize;
+                if (y1 < 0) y1 += imsize;
+                fft2[y1*imsize*2 + x1*2] =  
+                    data[y1*imsize*2 + x1*2] * cov[y*imsize+x];  // Real
+                fft2[y1*imsize*2 + x1*2 + 1] = 
+                    data[y1*imsize*2 + x1*2 + 1]*cov[y*imsize+x];  // Imaginary
+            }
+        }
+        FFTArray fftconv = new FFTArray(imsize, fft2);
+        return fftconv;
+    }    
 }
 
 class SquareArray {
@@ -78,8 +125,7 @@ class SquareArray {
 }
 
 class vriUtils {
-
-    public static double logn(double x, double n) {
+   public static double logn(double x, double n) {
         return Math.log(x)/Math.log(n);
     }
 
@@ -134,17 +180,14 @@ class vriUtils {
         float[] minmaxv = minmax(dat);
         float min = minmaxv[0];
         float max = minmaxv[1];
-        // System.out.println("Data minimum="+min+", maximum="+max);
 
         int pix[] = new int[imsize * imsize];
         for (int y = 0; y < imsize; y++) {
             for  (int x = 0; x < imsize; x++) {
                 int x1,y1;
                 x1 = x; y1 = y;
-                int grey = (int) (
-                                  255 * (dat[y1*imsize*2+x1*2] - min) /
-                                  (max - min)
-                                  );
+                int grey = (int) (255 * (dat[y1*imsize*2+x1*2] - min) /
+                                  (max - min));
                 pix[y*imsize+x] = 0xff000000 | (grey << 16) | (grey << 8) | grey;
             }
         }
@@ -199,8 +242,7 @@ class vriUtils {
         return dat;
     }
 
-
-    static int[] fftToPix(float fft[], String type, int imsize) {
+    static int[] fftToPix(float fft[], vriGreyDisp.Types type, int imsize) {
         double value;        // Quantity that is plotted to a pixel
         // System.out.println("Converting (fftToPix)");
 
@@ -208,7 +250,7 @@ class vriUtils {
         float[] minmaxv = minmax(fft);
         float min = minmaxv[0];
         float max = minmaxv[1];
-        if(type.equals("Phase")) {
+        if (type == vriGreyDisp.Types.PHASE) {
             min = (float)(-Math.PI / 2.0);
             max = (float)( Math.PI / 2.0);
         }
@@ -225,11 +267,11 @@ class vriUtils {
 
                 // Depending on the "type" of display selected, we extract the 
                 // relevant components of the fourier transform.
-                if (type.equals("Real")) {
+                if (type == vriGreyDisp.Types.REAL) {
                     value = fft[y1*imsize*2+x1*2];
-                } else if (type.equals("Imag.")) {
+                } else if (type == vriGreyDisp.Types.IMAG) {
                     value = fft[y1*imsize*2+x1*2+1];
-                } else if (type.equals("Phase")) {
+                } else if (type == vriGreyDisp.Types.PHASE) {
                     value = Math.atan2(fft[y1*imsize*2+x1*2],fft[y1*imsize*2+x1*2+1]);
                 } else {
                     // Used for Ampl., Colour and others that aren't handled
@@ -251,97 +293,6 @@ class vriUtils {
         }  // End for(y)
         return pix;
     }  
-
-    // fft was originally in vriUVpDisp
-    // and a stub remains there
-
-
-    static float[] fft(float dat[], int imsize) { 
-        System.out.print("vriUtils: Doing NEW forward transform... ");
-        float[] fft = new float[dat.length];
-        for(int i = 0; i < dat.length; i++) {
-            fft[i] = dat[i];
-        }
-        FloatFFT_2D f = new FloatFFT_2D(imsize, imsize);
-        f.complexForward(fft);
-        return fft;
-    }
-
-    // 2011-08-02 small@jive.nl: factoring invfft to here for symmetry and convenience.
-    static float[] invfft(FFTArray fft, int imsize) {
-        float[] dat = new float[fft.data.length];
-        for (int i = 0; i < dat.length; i++) {
-            dat[i] = fft.data[i]/imsize/imsize;
-        }
-        FloatFFT_2D f = new FloatFFT_2D(imsize, imsize);
-        f.complexInverse(dat, false);
-        return dat;
-    }
-
-    static public float[] dummyApplyUVc(float cov[], float fft[], int imsize) {
-        // Pretends to apply the UV coverage (from the UVcDisp class) to the FFT
-        // (the fft[] array).
-
-        // Get square array of floating point numbers with the taper
-        // function on pixels with UV coverage and 0 on those without
-        float[] fft2 = new float[2*imsize*imsize];
-        for(int y = 0; y < imsize; y++) {
-            for(int x = 0; x < imsize; x++) {
-                int x1, y1;
-                x1 = x - imsize/2; y1 = y - imsize/2;
-                if (x1 < 0) x1 += imsize;
-                if (y1 < 0) y1 += imsize;
-                fft2[y1*imsize*2 + x1*2] =  cov[y*imsize+x];  // Real
-                fft2[y1*imsize*2 + x1*2 + 1] = cov[y*imsize+x];  // Imaginary
-            }
-        }
-        return fft2;
-    }
-
-    static public float[] dummyApplyUVc2(float cov[], float fft[], int imsize) {
-        // Pretends to apply the UV coverage (from the UVcDisp class) to the FFT
-        // (the fft[] array).
-
-        // Get square array of floating point numbers with the taper
-        // function on pixels with UV coverage and 0 on those without
-        float[] fft2 = new float[2*imsize*imsize];
-        for(int y = 0; y < imsize; y++) {
-            for(int x = 0; x < imsize; x++) {
-                int x1, y1;
-                x1 = x - imsize/2; y1 = y - imsize/2;
-                if (x1 < 0) x1 += imsize;
-                if (y1 < 0) y1 += imsize;
-                fft2[y1*imsize*2 + x1*2] =  fft[y1*imsize*2 + x1*2];  // Real
-                fft2[y1*imsize*2 + x1*2 + 1] = fft[y1*imsize*2 + x1*2 + 1];  // Imaginary
-            }
-        }
-        return fft2;
-    }
-
-
-    // applyUVc from vriUVpDisp
-    static public float[] applyUVc(float cov[], float fft[], int imsize) {
-        // Applies the UV coverage (from the UVcDisp class) to the FFT
-        // (the fft[] array).
-
-        // Get square array of floating point numbers with the taper
-        // function on pixels with UV coverage and 0 on those without
-        float[] fft2 = new float[2*imsize*imsize];
-        for (int y = 0; y < imsize; y++) {
-            for (int x = 0; x < imsize; x++) {
-                int x1, y1;
-                x1 = x - imsize/2; 
-                y1 = y - imsize/2;
-                if (x1 < 0) x1 += imsize;
-                if (y1 < 0) y1 += imsize;
-                fft2[y1*imsize*2 + x1*2] =  
-                    fft[y1*imsize*2 + x1*2] * cov[y*imsize+x];  // Real
-                fft2[y1*imsize*2 + x1*2 + 1] = 
-                    fft[y1*imsize*2 + x1*2 + 1]*cov[y*imsize+x];  // Imaginary
-            }
-        }
-        return fft2;
-    }
 }
 
 class vriGreyDisp extends vriDisplay {
@@ -352,7 +303,7 @@ class vriGreyDisp extends vriDisplay {
     Image img;
     static int imsize;     // Size of the "squared" image
     String message = null; // Message to print on the Display
-    String type = "ampl";    // Used to select real/imag/amp/phase display
+    Types type = Types.AMPL;    // Used to select real/imag/amp/phase display
     double fullScale = 73000.0;
     String unit = "lobster";
     boolean hasAxes = false;
