@@ -72,9 +72,8 @@ class vriImgDisp extends vriGreyDisp
         System.err.println("vriImgDisp: Inverse fourier transforming...");
         message = new String("Inverse fourier transforming...");
         repaint();
-        int nn[] = {imsize, imsize};
-        float[] dat = vriUtils.invfft(fft, imsize);
-        int pix[] = vriUtils.datToPix(dat, fft.imsize);
+        FFTArray dat = fft.invfft();
+        int pix[] = vriUtils.datToPix(dat.data, fft.imsize);
         pixToImg(pix, fft.imsize);
         message = null;
         repaint();
