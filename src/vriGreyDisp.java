@@ -93,10 +93,6 @@ class SquareArray {
         }
         return pix;
     }
-
-
-
-
 }
 
 class FFTArray {
@@ -164,15 +160,17 @@ class FFTArray {
     }
 
     public FFTArray multiply(SquareArray covArray) {
+        // The FFT runs from 0 to 2*pi in both dimensions;
+        // the coverage array is centred at (0,0) in the UV plane.
+        //
+        // So we shift the (source and target) FFT arrays in the loop
+        // and leave the covariant indices alone.
         float[] cov = covArray.data;
         float[] fft2 = new float[2*size*size];
         for (int y = 0; y < size; y++) {
             for (int x = 0; x < size; x++) {
-                int x1, y1;
-                x1 = x - size/2; 
-                y1 = y - size/2;
-                if (x1 < 0) x1 += size;
-                if (y1 < 0) y1 += size;
+                int x1 = (x > size/2) ? x-size/2 : x+size/2;
+                int y1 = (y > size/2) ? y-size/2 : y+size/2;
                 fft2[y1*size*2 + x1*2] =  
                     data[y1*size*2 + x1*2] * cov[y*size+x];  // Real
                 fft2[y1*size*2 + x1*2 + 1] = 
