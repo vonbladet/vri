@@ -17,7 +17,7 @@ import java.awt.*;
 class vriImgDisp extends vriGreyDisp 
     implements PropertyChangeListener 
 {
-    FFTArray dat;
+    SquareArray dat;
 
     public vriImgDisp(Applet app) {
         super(app);
@@ -39,25 +39,22 @@ class vriImgDisp extends vriGreyDisp
     }
 
     public void loadAstroImage(AstroImage ai) {
+        PixArray pix;
         setFullScale(ai.scale);
         String str = ai.filename;
         loadImage(str);
         try {
-            int pix[] = imgToPix(img);
-            int imh = img.getHeight(this);
-            int imw = img.getWidth(this);
-            imsize = vriUtils.getImsize(imh, imw);
-            // System.err.println("Imsize: "+imsize);
-            vriUtils.greyPix(pix, imh, imw);
-            dat = new FFTArray(imsize, 
-                               vriUtils.pixToDat(pix, imh, imw, imsize));
-            vriUtils.scaleDat(dat.data);
-            pix = vriUtils.datToPix(dat.data, dat.imsize);
-            pixToImg(pix, dat.imsize);
+            PixArray pix2;
+            PixArray pix1 = imgToPix(img);
+            pix1.makeGrey();
+            dat = pix1.toDat();
+            dat.scale();
+            pix2 = dat.toPix();
+            pix2.toImage(applet, dat.size);
             message = null;
             repaint();
             propChanges.firePropertyChange("dat", null, dat);
-            propChanges.firePropertyChange("fftsize", 0, dat.imsize);
+            propChanges.firePropertyChange("fftsize", 0, imsize);
         } catch (EmptyImageException e) {
             System.err.println("ImgDisp: Empty image");
         }
@@ -72,9 +69,12 @@ class vriImgDisp extends vriGreyDisp
         System.err.println("vriImgDisp: Inverse fourier transforming...");
         message = new String("Inverse fourier transforming...");
         repaint();
-        FFTArray dat = fft.invfft();
-        int pix[] = vriUtils.datToPix(dat.data, fft.imsize);
-        pixToImg(pix, fft.imsize);
+        // Original image was real, then FFT image multiplied by a real
+        // => dat is actually FFT of a real thing.
+        FFTArray cdat = fft.invfft(); 
+        SquareArray dat = cdat.extractReals();
+        PixArray pix = dat.toPix();
+        pix.toImage(applet, fft.size);
         message = null;
         repaint();
     }

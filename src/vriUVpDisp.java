@@ -83,8 +83,8 @@ class vriUVpDisp extends vriGreyDisp
     }
 
     public void fftToImg(FFTArray fft) {
-        int pix [] = vriUtils.fftToPix(fft.data, type, fft.imsize);
-        pixToImg(pix, fft.imsize);
+        PixArray pix = vriUtils.fftToPix(fft, type);
+        pix.toImage(applet, fft.size);
         message = null;
         repaint();
     }
